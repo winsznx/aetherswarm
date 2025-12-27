@@ -10,6 +10,7 @@
 /* ==================== LIGHT MODE (Default) ==================== */
 :root,
 [data-theme="light"] {
+  color-scheme: light;
   /* Core Palette - Light */
   --alabaster: #F2F0E9;
   --limestone: #E6E4DC;
@@ -43,6 +44,7 @@
 
 /* ==================== DARK MODE ==================== */
 [data-theme="dark"] {
+  color-scheme: dark;
   --alabaster: #0F0F0F;
   --limestone: #1A1A1A;
   --soft-grey: #2A2A2A;
