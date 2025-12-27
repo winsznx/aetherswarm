@@ -889,14 +889,3 @@ section {
 }
 
 /* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --alabaster: #1A1A1A;
-    --limestone: #242424;
-    --soft-grey: #3A3A3A;
-    --mid-grey: #888888;
-    --graphite: #E6E4DC;
-    --warm-white: #2A2A2A;
-    --deep-black: #F2F0E9;
-  }
-}
