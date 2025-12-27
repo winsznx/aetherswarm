@@ -21,15 +21,21 @@ const nextConfig: NextConfig = {
         net: false,
         tls: false,
       };
+      // Ignore optional Solana dependencies from @coinbase/cdp-sdk to prevent build/runtime errors
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@solana/kit': false,
+        '@solana-program/system': false,
+        '@solana-program/token': false,
+      };
     }
 
+    // Server-side externals
     config.externals.push('pino-pretty', 'lokijs', 'encoding', {
       'thread-stream': 'commonjs thread-stream',
       'pino': 'commonjs pino',
-      '@solana/kit': 'commonjs @solana/kit',
-      '@solana-program/system': 'commonjs @solana-program/system',
-      '@solana-program/token': 'commonjs @solana-program/token'
     });
+
     return config;
   },
 };
