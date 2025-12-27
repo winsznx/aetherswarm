@@ -22,6 +22,7 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import MarketplaceTeaser from '@/sections/MarketplaceTeaser';
 
 // Types
 interface Quest {
@@ -1100,6 +1101,13 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Marketplace Teaser */}
+      <section style={{ padding: 'var(--space-xl) 0' }}>
+        <div className="container">
+          <MarketplaceTeaser />
         </div>
       </section>
 
