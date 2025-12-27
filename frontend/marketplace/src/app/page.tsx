@@ -7,6 +7,7 @@ import { useAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/rea
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits } from 'viem';
 import { USDC_ADDRESSES, ERC20_ABI } from '@/config/wagmi';
+import { Sun, Moon, Monitor } from 'lucide-react';
 import {
   ReactFlow,
   MiniMap,
@@ -421,7 +422,7 @@ export default function Home() {
             }}
             aria-label="Toggle theme"
           >
-            {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '💻'}
+            {theme === 'light' ? <Sun size={14} /> : theme === 'dark' ? <Moon size={14} /> : <Monitor size={14} />}
           </button>
         </nav>
 
@@ -436,10 +437,13 @@ export default function Home() {
               cursor: 'pointer',
               fontSize: '14px',
               color: 'var(--graphite)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
             aria-label="Toggle theme"
           >
-            {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '💻'}
+            {theme === 'light' ? <Sun size={16} /> : theme === 'dark' ? <Moon size={16} /> : <Monitor size={16} />}
           </button>
           <button
             onClick={() => setMobileMenuOpen(true)}
