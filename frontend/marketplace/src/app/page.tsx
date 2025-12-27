@@ -421,7 +421,7 @@ export default function Home() {
             }}
             aria-label="Toggle theme"
           >
-            {theme === 'light' ? '◐' : '◑'}
+            {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '💻'}
           </button>
         </nav>
 
@@ -439,7 +439,7 @@ export default function Home() {
             }}
             aria-label="Toggle theme"
           >
-            {theme === 'light' ? '◐' : '◑'}
+            {theme === 'light' ? '☀️' : theme === 'dark' ? '🌙' : '💻'}
           </button>
           <button
             onClick={() => setMobileMenuOpen(true)}
