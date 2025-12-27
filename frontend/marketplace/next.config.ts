@@ -31,11 +31,21 @@ const nextConfig: NextConfig = {
       '@solana-program/token': false,
     };
 
-    // Server-side externals
-    config.externals.push('pino-pretty', 'lokijs', 'encoding', {
-      'thread-stream': 'commonjs thread-stream',
-      'pino': 'commonjs pino',
-    });
+    // Server-side externals: specific to Node.js environment
+    if (isServer) {
+      config.externals.push('pino-pretty', 'lokijs', 'encoding', {
+        'thread-stream': 'commonjs thread-stream',
+        'pino': 'commonjs pino',
+      });
+    } else {
+      // Client-side: Mock these server-only packages to prevent "require is not defined"
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'pino': false,
+        'thread-stream': false,
+        'pino-pretty': false,
+      };
+    }
 
     return config;
   },
