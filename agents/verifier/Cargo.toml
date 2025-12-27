@@ -1,0 +1,17 @@
+[package]
+name = "verifier-agent"
+version = "0.1.0"
+edition = "2021"
+description = "AetherSwarm Verifier Agent with EigenCloud TEE integration"
+
+[dependencies]
+tokio = { version = "1.35", features = ["full"] }
+tokio-tungstenite = { version = "0.21", features = ["native-tls"] }
+futures-util = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+reqwest = { version = "0.11", features = ["json", "native-tls"] }
+dotenv = "0.15"
+blake3 = "1.5"
+base64 = "0.21"
+url = "2.5"
