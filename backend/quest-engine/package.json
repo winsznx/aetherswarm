@@ -1,0 +1,35 @@
+{
+  "name": "quest-engine",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@crossmint/client-sdk-base": "^1.7.9",
+    "@crossmint/server-sdk": "^1.2.54",
+    "@crossmint/wallets-sdk": "^0.18.12",
+    "@thirdweb-dev/nexus": "^0.1.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.0.0",
+    "@x402/core": "^2.1.0",
+    "@x402/evm": "^2.1.0",
+    "@x402/express": "^2.1.0",
+    "bullmq": "^5.66.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "ethers": "^6.16.0",
+    "express": "^5.2.1",
+    "ioredis": "^5.8.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "x402-express": "^1.1.0"
+  }
+}
