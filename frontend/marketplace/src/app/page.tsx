@@ -56,9 +56,9 @@ const AgentNode = ({ data }: { data: any }) => (
     animate={{ opacity: 1, scale: 1 }}
     style={{
       padding: '20px 32px',
-      background: data.active ? '#2A2A2A' : '#FAF9F6',
-      color: data.active ? '#FAF9F6' : '#2A2A2A',
-      border: '1px solid #2A2A2A',
+      background: data.active ? 'var(--graphite)' : 'var(--warm-white)',
+      color: data.active ? 'var(--warm-white)' : 'var(--graphite)',
+      border: '1px solid var(--graphite)',
       minWidth: '160px',
       fontFamily: 'var(--font-sans)',
     }}
@@ -93,7 +93,7 @@ const AgentNode = ({ data }: { data: any }) => (
         width: '6px',
         height: '6px',
         borderRadius: '50%',
-        background: data.status === 'active' ? '#6B705C' : '#B07D62',
+        background: data.status === 'active' ? 'var(--olive-drab)' : 'var(--burnt-clay)',
       }} />
       {data.status}
     </div>
@@ -136,12 +136,12 @@ const initialNodes: Node[] = [
 ];
 
 const initialEdges: Edge[] = [
-  { id: 'e1', source: 'coordinator', target: 'scout', animated: true, style: { stroke: '#2A2A2A' } },
-  { id: 'e2', source: 'coordinator', target: 'verifier', animated: true, style: { stroke: '#2A2A2A' } },
-  { id: 'e3', source: 'coordinator', target: 'synthesizer', animated: true, style: { stroke: '#2A2A2A' } },
-  { id: 'e4', source: 'scout', target: 'questpool', style: { stroke: '#2A2A2A' } },
-  { id: 'e5', source: 'verifier', target: 'questpool', style: { stroke: '#2A2A2A' } },
-  { id: 'e6', source: 'synthesizer', target: 'questpool', style: { stroke: '#2A2A2A' } },
+  { id: 'e1', source: 'coordinator', target: 'scout', animated: true, style: { stroke: 'var(--graphite)' } },
+  { id: 'e2', source: 'coordinator', target: 'verifier', animated: true, style: { stroke: 'var(--graphite)' } },
+  { id: 'e3', source: 'coordinator', target: 'synthesizer', animated: true, style: { stroke: 'var(--graphite)' } },
+  { id: 'e4', source: 'scout', target: 'questpool', style: { stroke: 'var(--graphite)' } },
+  { id: 'e5', source: 'verifier', target: 'questpool', style: { stroke: 'var(--graphite)' } },
+  { id: 'e6', source: 'synthesizer', target: 'questpool', style: { stroke: 'var(--graphite)' } },
 ];
 
 // Magnetic Button Component
@@ -801,7 +801,7 @@ export default function Home() {
       </section>
 
       {/* Stats */}
-      <section style={{ padding: '80px 0', background: 'var(--graphite)', color: 'var(--warm-white)' }}>
+      <section style={{ padding: '80px 0', background: 'var(--limestone)', color: 'var(--graphite)' }}>
         <div className="container">
           <div style={{
             display: 'grid',
@@ -876,8 +876,8 @@ export default function Home() {
                 />
                 <Controls />
                 <MiniMap
-                  nodeColor={(node) => node.data?.active ? '#2A2A2A' : '#E6E4DC'}
-                  style={{ background: '#FAF9F6', border: '1px solid #D1D1D1' }}
+                  nodeColor={(node) => node.data?.active ? (theme === 'dark' ? '#E6E4DC' : '#2A2A2A') : (theme === 'dark' ? '#2A2A2A' : '#E6E4DC')}
+                  style={{ background: 'var(--warm-white)', border: '1px solid var(--soft-grey)' }}
                 />
               </ReactFlow>
             </div>
@@ -1067,7 +1067,7 @@ export default function Home() {
                           <span style={{
                             fontSize: '9px',
                             padding: '4px 10px',
-                            background: quest.status === 'queued' ? '#F2F0E9' : '#E6E4DC',
+                            background: quest.status === 'queued' ? 'var(--alabaster)' : 'var(--limestone)',
                             border: '1px solid var(--soft-grey)',
                             textTransform: 'uppercase',
                             letterSpacing: '0.1em',
