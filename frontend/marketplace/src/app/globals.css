@@ -23,6 +23,18 @@
   --header-bg: rgba(242, 240, 233, 0.9);
   --footer-bg: #2A2A2A;
   --footer-text: #F2F0E9;
+
+  /* Tailwind/Shadcn Mapping */
+  --background: 40 16% 93%;
+  /* #F2F0E9 converted to HSL approx */
+  --foreground: 0 0% 16%;
+  /* #2A2A2A converted to HSL */
+  --border: 0 0% 82%;
+  /* #D1D1D1 */
+  --input: 60 11% 96%;
+  /* #FAF9F6 */
+  --ring: 84 10% 41%;
+  /* #6B705C */
 }
 
 /* ==================== DARK MODE ==================== */
@@ -43,6 +55,18 @@
   --header-bg: rgba(15, 15, 15, 0.9);
   --footer-bg: #1A1A1A;
   --footer-text: #E6E4DC;
+
+  /* Tailwind/Shadcn Mapping */
+  --background: 0 0% 6%;
+  /* #0F0F0F */
+  --foreground: 40 16% 88%;
+  /* #E6E4DC */
+  --border: 0 0% 16%;
+  /* #2A2A2A */
+  --input: 0 0% 8%;
+  /* #141414 */
+  --ring: 94 14% 55%;
+  /* #8A9A7C */
 }
 
 /* Typography */
