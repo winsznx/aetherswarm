@@ -2,18 +2,7 @@
     "$schema": "https://openapi.vercel.sh/vercel.json",
     "name": "aetherswarm-marketplace",
     "version": 2,
-    "builds": [
-        {
-            "src": "package.json",
-            "use": "@vercel/next"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/(.*)",
-            "dest": "/$1"
-        }
-    ],
+    "framework": "nextjs",
     "headers": [
         {
             "source": "/(.*)",
