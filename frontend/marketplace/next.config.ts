@@ -22,6 +22,14 @@ const nextConfig: NextConfig = {
         tls: false,
       };
     }
+
+    config.externals.push('pino-pretty', 'lokijs', 'encoding', {
+      'thread-stream': 'commonjs thread-stream',
+      'pino': 'commonjs pino',
+      '@solana/kit': 'commonjs @solana/kit',
+      '@solana-program/system': 'commonjs @solana-program/system',
+      '@solana-program/token': 'commonjs @solana-program/token'
+    });
     return config;
   },
 };
