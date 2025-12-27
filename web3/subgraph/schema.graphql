@@ -1,0 +1,129 @@
+# AetherSwarm Subgraph Schema
+# Indexes ERC-8004 Discovery Registry, Reputation, Quests, and Artifacts
+
+"""
+Agent entity - ERC-8004 compliant agent identity
+"""
+type Agent @entity {
+  id: ID!  # Agent token ID
+  role: AgentRole!
+  paymentAddress: Bytes!
+  wsEndpoint: String!
+  a2aEndpoint: String!
+  stakeAmount: BigInt!
+  isActive: Boolean!
+  registeredAt: BigInt!
+  tokenURI: String!
+  
+  # Reputation
+  reputationScore: BigInt!
+  feedbackCount: BigInt!
+  questsCompleted: BigInt!
+  
+  # Relations
+  feedbacks: [Feedback!]! @derivedFrom(field: "agent")
+  questParticipations: [QuestParticipation!]! @derivedFrom(field: "agent")
+}
+
+enum AgentRole {
+  Scout
+  Verifier
+  Synthesizer
+}
+
+"""
+Feedback entity - reputation entries for agents
+"""
+type Feedback @entity {
+  id: ID!  # tx hash + log index
+  agent: Agent!
+  reviewer: Bytes!
+  score: Int!
+  questId: Bytes!
+  x402PaymentHash: Bytes!
+  detailsURI: String
+  timestamp: BigInt!
+}
+
+"""
+Quest entity - research expeditions
+"""
+type Quest @entity {
+  id: ID!  # Quest ID bytes32
+  budget: BigInt!
+  status: QuestStatus!
+  createdAt: BigInt!
+  completedAt: BigInt
+  
+  # Wallet
+  walletAddress: Bytes
+  
+  # Relations
+  participants: [QuestParticipation!]! @derivedFrom(field: "quest")
+  artifact: Artifact @derivedFrom(field: "quest")
+  payments: [Payment!]! @derivedFrom(field: "quest")
+}
+
+enum QuestStatus {
+  Created
+  Scouting
+  Verifying
+  Synthesizing
+  Complete
+  Failed
+}
+
+"""
+Quest Participation - tracks which agents worked on quests
+"""
+type QuestParticipation @entity {
+  id: ID!  # quest id + agent id
+  quest: Quest!
+  agent: Agent!
+  role: AgentRole!
+  paidAmount: BigInt!
+  timestamp: BigInt!
+}
+
+"""
+Payment entity - x402 drip payments
+"""
+type Payment @entity {
+  id: ID!  # tx hash
+  quest: Quest!
+  recipient: Bytes!
+  amount: BigInt!
+  asset: Bytes!
+  timestamp: BigInt!
+}
+
+"""
+Artifact entity - knowledge artifacts minted as NFTs
+"""
+type Artifact @entity {
+  id: ID!  # Token ID
+  quest: Quest
+  metadataURI: String!
+  merkleRoot: Bytes!
+  contributors: [Bytes!]!
+  mintedAt: BigInt!
+  owner: Bytes!
+  
+  # TEE attestation
+  teeAttestation: Bytes
+  confidenceScore: Int
+}
+
+"""
+Global statistics
+"""
+type Stats @entity {
+  id: ID!  # "global"
+  totalAgents: BigInt!
+  totalQuests: BigInt!
+  totalArtifacts: BigInt!
+  totalVolumeUSDC: BigInt!
+  activeScouts: BigInt!
+  activeVerifiers: BigInt!
+  activeSynthesizers: BigInt!
+}

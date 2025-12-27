@@ -1,0 +1,96 @@
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: DiscoveryRegistry
+    network: polygon
+    source:
+      address: "0x0000000000000000000000000000000000000000" # Replace with deployed address
+      abi: DiscoveryRegistry
+      startBlock: 0 # Replace with deployment block
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Agent
+        - Quest
+      abis:
+        - name: DiscoveryRegistry
+          file: ./abis/DiscoveryRegistry.json
+      eventHandlers:
+        - event: AgentRegistered(indexed uint256,indexed address,uint8,string)
+          handler: handleAgentRegistered
+        - event: AgentUpdated(indexed uint256,string,string,bool)
+          handler: handleAgentUpdated
+        - event: AgentStakeSlashed(indexed uint256,uint256,string)
+          handler: handleAgentSlashed
+      file: ./src/discovery-registry.ts
+
+  - kind: ethereum
+    name: ReputationRegistry
+    network: polygon
+    source:
+      address: "0x0000000000000000000000000000000000000000" # Replace with deployed address
+      abi: ReputationRegistry
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Agent
+        - Feedback
+      abis:
+        - name: ReputationRegistry
+          file: ./abis/ReputationRegistry.json
+      eventHandlers:
+        - event: FeedbackPosted(indexed uint256,indexed address,uint8,bytes32)
+          handler: handleFeedbackPosted
+        - event: ReputationUpdated(indexed uint256,uint256,uint256)
+          handler: handleReputationUpdated
+      file: ./src/reputation-registry.ts
+
+  - kind: ethereum
+    name: QuestPool
+    network: polygon
+    source:
+      address: "0x0000000000000000000000000000000000000000" # Replace with deployed address
+      abi: QuestPool
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Quest
+        - Payment
+      abis:
+        - name: QuestPool
+          file: ./abis/QuestPool.json
+      eventHandlers:
+        - event: QuestCreated(bytes32,uint256)
+          handler: handleQuestCreated
+      file: ./src/quest-pool.ts
+
+  - kind: ethereum
+    name: ArtifactNFT
+    network: polygon
+    source:
+      address: "0x0000000000000000000000000000000000000000" # Replace
+      abi: ArtifactNFT
+      startBlock: 0
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Artifact
+      abis:
+        - name: ArtifactNFT
+          file: ./abis/ArtifactNFT.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleArtifactMinted
+      file: ./src/artifact-nft.ts
