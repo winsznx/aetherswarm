@@ -10,6 +10,12 @@ interface Quest {
     budget: string;
     walletAddress?: string;
     createdAt?: string;
+    paymentTxHash?: string;
+    explorerLinks?: {
+        paymentTx: string | null;
+        questWallet: string;
+        discoveryRegistry: string;
+    };
 }
 
 export default function QuestsPage() {
@@ -19,12 +25,24 @@ export default function QuestsPage() {
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
-        // Simulated quests for demo
-        setQuests([
-            { questId: 'quest-1766757269355-5e36ce37', status: 'queued', objectives: 'Research latest developments in AI agents', budget: '10.00', walletAddress: '0x117a7a9E81ca218B74BFaa15B31f4fD13dCD8a00', createdAt: new Date().toISOString() },
-            { questId: 'quest-1766756275486-8c395680', status: 'completed', objectives: 'Analyze DeFi protocols for security vulnerabilities', budget: '25.00', walletAddress: '0x04944fA721cC9F77Bbf766EE431a404D4d187afd', createdAt: new Date(Date.now() - 86400000).toISOString() },
-        ]);
-        setIsLoading(false);
+        const fetchQuests = async () => {
+            try {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001'}/quests`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setQuests(data.quests || []);
+                }
+            } catch (error) {
+                console.error('Failed to fetch quests:', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchQuests();
+        // Poll for updates every 10 seconds
+        const interval = setInterval(fetchQuests, 10000);
+        return () => clearInterval(interval);
     }, []);
 
     const filteredQuests = quests.filter(q => {
@@ -231,11 +249,59 @@ export default function QuestsPage() {
                                         </div>
                                         <div style={{ textAlign: 'right' }}>
                                             <div className="label">Wallet</div>
-                                            <div style={{ fontSize: '11px', fontFamily: 'monospace' }}>
-                                                {quest.walletAddress?.slice(0, 8)}...
-                                            </div>
+                                            {quest.explorerLinks?.questWallet ? (
+                                                <a
+                                                    href={quest.explorerLinks.questWallet}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{
+                                                        fontSize: '11px',
+                                                        fontFamily: 'monospace',
+                                                        color: 'var(--olive-drab)',
+                                                        textDecoration: 'none',
+                                                    }}
+                                                >
+                                                    {quest.walletAddress?.slice(0, 8)}... ↗
+                                                </a>
+                                            ) : (
+                                                <div style={{ fontSize: '11px', fontFamily: 'monospace' }}>
+                                                    {quest.walletAddress?.slice(0, 8)}...
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
+
+                                    {/* Payment Transaction Link */}
+                                    {quest.explorerLinks?.paymentTx && (
+                                        <div style={{
+                                            marginTop: '12px',
+                                            paddingTop: '12px',
+                                            borderTop: '1px solid var(--soft-grey)',
+                                        }}>
+                                            <a
+                                                href={quest.explorerLinks.paymentTx}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '6px',
+                                                    padding: '6px 12px',
+                                                    background: 'var(--limestone)',
+                                                    border: '1px solid var(--soft-grey)',
+                                                    fontSize: '10px',
+                                                    fontWeight: 500,
+                                                    letterSpacing: '0.05em',
+                                                    textTransform: 'uppercase',
+                                                    textDecoration: 'none',
+                                                    color: 'var(--graphite)',
+                                                    transition: 'all 0.3s ease',
+                                                }}
+                                            >
+                                                ✓ Payment Verified ↗
+                                            </a>
+                                        </div>
+                                    )}
                                 </motion.div>
                             ))}
                         </AnimatePresence>
