@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
       'pino': require.resolve('./src/mocks/pino.ts'),
     };
 
+    // Ignore optional Solana dependencies (not needed for our use case)
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      '@solana/kit': false,
+      'porto': false,
+      'porto/internal': false,
+    };
+
     // Externalize other packages
     config.externals.push('pino-pretty', 'lokijs', 'encoding');
     return config;
@@ -25,5 +33,3 @@ const nextConfig: NextConfig = {
 };
 
 export default nextConfig;
-
-
