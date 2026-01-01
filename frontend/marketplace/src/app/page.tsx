@@ -379,10 +379,27 @@ export default function Home() {
         backdropFilter: 'blur(10px)',
         borderBottom: '1px solid var(--soft-grey)',
       }}>
-        <a href="/" style={{ textDecoration: 'none', color: 'var(--graphite)', flexShrink: 0 }}>
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1rem, 4vw, 1.25rem)', letterSpacing: '-0.02em' }}>
-            AETHER<span style={{ fontStyle: 'italic' }}>SWARM</span>
-          </span>
+        <a href="/" style={{ textDecoration: 'none', color: 'var(--graphite)', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+          {/* Light Mode Logo */}
+          <img
+            src="/AstherS Logo1.svg"
+            alt="AetherSwarm"
+            className="logo-light"
+            style={{
+              height: 'clamp(28px, 5vw, 40px)',
+              width: 'auto',
+            }}
+          />
+          {/* Dark Mode Logo */}
+          <img
+            src="/AstherS Logo2.svg"
+            alt="AetherSwarm"
+            className="logo-dark"
+            style={{
+              height: 'clamp(28px, 5vw, 40px)',
+              width: 'auto',
+            }}
+          />
         </a>
 
         {/* Desktop Navigation */}
@@ -390,6 +407,7 @@ export default function Home() {
           <a href="/" className="label" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>Home</a>
           <a href="/agents" className="label" style={{ textDecoration: 'none' }}>Agents</a>
           <a href="/quests" className="label" style={{ textDecoration: 'none' }}>Quests</a>
+          <a href="/docs" className="label" style={{ textDecoration: 'none' }}>Docs</a>
           <a href="/settings" className="label" style={{ textDecoration: 'none' }}>Settings</a>
           <button
             onClick={() => open()}
@@ -516,7 +534,7 @@ export default function Home() {
                 ✕
               </button>
               <nav style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {[{ href: '/', label: 'Home' }, { href: '/agents', label: 'Agents' }, { href: '/quests', label: 'Quests' }, { href: '/settings', label: 'Settings' }].map(link => (
+                {[{ href: '/', label: 'Home' }, { href: '/agents', label: 'Agents' }, { href: '/quests', label: 'Quests' }, { href: '/docs', label: 'Docs' }, { href: '/settings', label: 'Settings' }].map(link => (
                   <a key={link.href} href={link.href} onClick={() => setMobileMenuOpen(false)} style={{
                     fontFamily: 'var(--font-serif)',
                     fontSize: '1.5rem',
@@ -531,8 +549,25 @@ export default function Home() {
               </nav>
               <div style={{ marginTop: 'auto', paddingTop: '24px' }}>
                 <span className="label">Decentralized Knowledge</span>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', marginTop: '8px' }}>
-                  AETHER<span style={{ fontStyle: 'italic' }}>SWARM</span>
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center' }}>
+                  <img
+                    src="/AstherS Logo1.svg"
+                    alt="AetherSwarm"
+                    className="logo-light"
+                    style={{
+                      height: '32px',
+                      width: 'auto',
+                    }}
+                  />
+                  <img
+                    src="/AstherS Logo2.svg"
+                    alt="AetherSwarm"
+                    className="logo-dark"
+                    style={{
+                      height: '32px',
+                      width: 'auto',
+                    }}
+                  />
                 </div>
               </div>
             </motion.div>
@@ -564,18 +599,24 @@ export default function Home() {
           }}
         />
 
-        <motion.div style={{ scale: heroScale, opacity: heroOpacity }}>
+        <motion.div style={{ scale: heroScale, opacity: heroOpacity, padding: '0 16px' }}>
           <motion.h1
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.8 }}
             style={{
               textAlign: 'center',
-              letterSpacing: '-0.04em',
-              color: 'var(--graphite)',
+              letterSpacing: '0.08em',
+              color: '#A8A8A8',
+              fontSize: 'clamp(1.25rem, 3vw, 1.75rem)',
+              fontWeight: 300,
+              textTransform: 'uppercase',
+              maxWidth: '800px',
+              lineHeight: '1.4',
+              margin: '0 auto',
             }}
           >
-            AETHER<span style={{ fontStyle: 'italic' }}>SWARM</span>
+            DECENTRALIZED KNOWLEDGE<br />EXPEDITION PLATFORM
           </motion.h1>
         </motion.div>
 
@@ -583,15 +624,20 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 1.2 }}
-          className="label"
           style={{
-            marginTop: 'var(--space-md)',
+            marginTop: '24px',
             textAlign: 'center',
-            maxWidth: '500px',
+            maxWidth: '680px',
             lineHeight: 1.6,
+            fontSize: 'clamp(0.95rem, 1.8vw, 1.15rem)',
+            fontFamily: 'var(--font-sans)',
+            color: 'var(--graphite)',
+            fontWeight: 400,
+            margin: '24px auto 0',
+            padding: '0 16px',
           }}
         >
-          Decentralized Knowledge Expedition Platform
+          Deploy research <span style={{ fontStyle: 'italic' }}>quests</span>. Let AI agents hunt, verify, and synthesize knowledge with <span style={{ fontStyle: 'italic' }}>cryptographic proof</span>.
         </motion.p>
 
         {/* Scroll Indicator */}
@@ -621,25 +667,6 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Philosophy Section */}
-      <section style={{
-        minHeight: '50vh',
-        display: 'flex',
-        alignItems: 'center',
-        padding: '64px 16px',
-      }}>
-        <div className="container">
-          <motion.h2
-            style={{
-              maxWidth: '900px',
-              lineHeight: 1.2,
-              fontSize: 'clamp(1.5rem, 5vw, 3rem)',
-            }}
-          >
-            Deploy research <span style={{ fontStyle: 'italic' }}>quests</span>. Let AI agents hunt, verify, and synthesize knowledge with <span style={{ fontStyle: 'italic' }}>cryptographic proof</span>.
-          </motion.h2>
-        </div>
-      </section>
 
       {/* How It Works */}
       <section style={{ padding: '80px 0', background: 'var(--limestone)' }}>
@@ -707,16 +734,17 @@ export default function Home() {
                 whileHover={{ y: -4 }}
                 style={{
                   padding: '32px',
-                  background: 'var(--graphite)',
-                  color: 'var(--warm-white)',
+                  background: 'var(--warm-white)',
+                  color: 'var(--graphite)',
                   cursor: 'pointer',
+                  border: '1px solid var(--soft-grey)',
                 }}
               >
                 <div style={{ fontSize: '2rem', marginBottom: '16px' }}>{agent.icon}</div>
                 <div className="label" style={{ marginBottom: '8px', opacity: 0.7 }}>{agent.role}</div>
-                <h3 style={{ color: 'var(--warm-white)', marginBottom: '16px' }}>{agent.title}</h3>
-                <p style={{ opacity: 0.8, lineHeight: 1.6, fontSize: '14px', marginBottom: '16px' }}>{agent.desc}</p>
-                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.5 }}>{agent.status}</span>
+                <h3 style={{ marginBottom: '16px' }}>{agent.title}</h3>
+                <p style={{ lineHeight: 1.6, fontSize: '14px', marginBottom: '16px', color: 'var(--mid-grey)' }}>{agent.desc}</p>
+                <span style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--mid-grey)' }}>{agent.status}</span>
               </motion.div>
             ))}
           </div>
@@ -732,7 +760,7 @@ export default function Home() {
           </h2>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(250px, 100%), 1fr))',
             gap: '16px',
           }}>
             {[
@@ -745,14 +773,30 @@ export default function Home() {
             ].map((useCase, i) => (
               <motion.div
                 key={i}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.05 }}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{
+                  duration: 0.6,
+                  delay: i * 0.1,
+                  ease: [0.16, 1, 0.3, 1]
+                }}
+                whileHover={{
+                  y: -8,
+                  transition: { duration: 0.3 }
+                }}
                 style={{
                   padding: '24px',
                   background: 'var(--warm-white)',
                   border: '1px solid var(--soft-grey)',
+                  cursor: 'pointer',
+                  transition: 'box-shadow 0.3s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.08)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = 'none';
                 }}
               >
                 <h4 style={{ fontFamily: 'var(--font-serif)', marginBottom: '8px' }}>{useCase.title}</h4>

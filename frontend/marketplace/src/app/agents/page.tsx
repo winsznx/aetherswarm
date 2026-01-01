@@ -304,7 +304,7 @@ export default function AgentsPage() {
                         ))}
                     </div>
 
-                    {/* React Flow */}
+                    {/* Agent Network Visualization */}
                     <div style={{
                         height: '500px',
                         background: 'var(--limestone)',
@@ -318,6 +318,7 @@ export default function AgentsPage() {
                             onEdgesChange={onEdgesChange}
                             nodeTypes={nodeTypes}
                             fitView
+                            proOptions={{ hideAttribution: true }}
                         >
                             <Background variant={BackgroundVariant.Dots} gap={24} size={1} color="#D1D1D1" />
                             <Controls />

@@ -1,11 +1,11 @@
 /* AetherSwarm - Premium Design System */
 /* Decentralized Knowledge Expedition Platform */
 
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
 
 /* ==================== LIGHT MODE (Default) ==================== */
 :root,
@@ -73,6 +73,48 @@
   /* #141414 */
   --ring: 94 14% 55%;
   /* #8A9A7C */
+}
+
+/* ==================== LOGO THEME SWITCHING ==================== */
+/* Light mode - show Logo1, hide Logo2 */
+:root .logo-light,
+[data-theme="light"] .logo-light {
+  display: block;
+}
+
+:root .logo-dark,
+[data-theme="light"] .logo-dark {
+  display: none;
+}
+
+/* Dark mode - hide Logo1, show Logo2 */
+[data-theme="dark"] .logo-light {
+  display: none;
+}
+
+[data-theme="dark"] .logo-dark {
+  display: block;
+}
+
+/* System mode - use prefers-color-scheme */
+@media (prefers-color-scheme: dark) {
+  [data-theme="system"] .logo-light {
+    display: none;
+  }
+
+  [data-theme="system"] .logo-dark {
+    display: block;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  [data-theme="system"] .logo-light {
+    display: block;
+  }
+
+  [data-theme="system"] .logo-dark {
+    display: none;
+  }
 }
 
 /* Typography */
@@ -410,11 +452,12 @@ section {
   align-items: center;
   position: relative;
   z-index: 1;
+  padding-right: 16px;
   transition: transform var(--duration-medium) var(--ease-out-expo);
 }
 
 .accordion-item:hover .accordion-title {
-  transform: translateX(1rem);
+  transform: translateX(0.5rem);
 }
 
 /* Status */

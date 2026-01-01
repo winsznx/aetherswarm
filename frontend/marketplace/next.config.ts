@@ -8,48 +8,22 @@ const nextConfig: NextConfig = {
     'wagmi',
     'viem',
   ],
-  // Exclude problematic server packages from bundling
-  serverExternalPackages: ['pino', 'thread-stream', 'pino-pretty'],
   // Empty turbopack config to silence warning (Next.js 16+)
   turbopack: {},
-  // Configure webpack to ignore problematic packages
-  webpack: (config, { isServer }) => {
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      };
-    }
-
-    // Ignore optional Solana dependencies from @coinbase/cdp-sdk to prevent build/runtime errors
+  // Configure webpack as per official Reown AppKit docs + pino browser shim
+  webpack: (config) => {
+    // Provide browser-compatible shim for pino
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@solana/kit': false,
-      '@solana-program/system': false,
-      '@solana-program/token': false,
+      'pino': require.resolve('./src/mocks/pino.ts'),
     };
 
-    // Server-side externals: specific to Node.js environment
-    if (isServer) {
-      config.externals.push('pino-pretty', 'lokijs', 'encoding', {
-        'thread-stream': 'commonjs thread-stream',
-        'pino': 'commonjs pino',
-      });
-    } else {
-      // Client-side: Mock these server-only packages to prevent "require is not defined"
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        'pino': false,
-        'thread-stream': false,
-        'pino-pretty': false,
-      };
-    }
-
+    // Externalize other packages
+    config.externals.push('pino-pretty', 'lokijs', 'encoding');
     return config;
   },
 };
 
 export default nextConfig;
+
 
