@@ -453,7 +453,7 @@ export default function DocsPage() {
                         style={{ height: 'clamp(28px, 5vw, 40px)', width: 'auto' }}
                     />
                 </a>
-                <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
+                <nav className="desktop-nav" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                     <a href="/" className="label" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>Home</a>
                     <a href="/agents" className="label" style={{ textDecoration: 'none' }}>Agents</a>
                     <a href="/quests" className="label" style={{ textDecoration: 'none' }}>Quests</a>

@@ -822,16 +822,31 @@ section {
   }
 
   .docs-layout aside.mobile-menu-open {
-    display: block !important;
+    display: flex !important;
+    flexDirection: column;
     position: fixed;
-    top: 60px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
     background: var(--alabaster);
-    z-index: 100;
-    padding: 24px;
+    z-index: 999;
+    padding: 80px 24px 24px 24px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Improve mobile docs navigation item spacing */
+  .docs-layout aside button {
+    padding: 12px 0 !important;
+    font-size: 15px !important;
+  }
+
+  /* Code blocks - enable horizontal scrolling on mobile */
+  pre, code {
+    overflow-x: auto !important;
+    white-space: pre !important;
+    word-wrap: normal !important;
   }
 }
 
