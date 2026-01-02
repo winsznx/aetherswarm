@@ -482,7 +482,7 @@ export default function DocsPage() {
 
             <div className="container docs-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '48px', padding: '48px 16px', maxWidth: '1400px', margin: '0 auto' }}>
                 {/* Sidebar */}
-                <aside className={mobileMenuOpen ? "mobile-menu-open" : ""} style={{ position: 'sticky', top: '100px', height: 'fit-content' }}>
+                <aside className={mobileMenuOpen ? "mobile-menu-open" : ""} style={{ height: 'fit-content' }}>
                     <div style={{ marginBottom: '24px' }}>
                         <span className="label">Documentation</span>
                         <h2 style={{ marginTop: '8px', fontSize: '1.5rem' }}>

@@ -965,3 +965,9 @@ section {
 }
 
 /* Dark Mode Support */
+
+/* Docs layout - default desktop styles */
+.docs-layout aside {
+  position: sticky;
+  top: 100px;
+}
