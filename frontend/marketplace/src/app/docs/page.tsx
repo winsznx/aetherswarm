@@ -7,6 +7,7 @@ import { ChevronDown, ChevronRight, Book, Code, Rocket, Zap, Shield, Globe } fro
 export default function DocsPage() {
     const [activeSection, setActiveSection] = useState<string>('overview');
     const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['getting-started']));
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const toggleSection = (section: string) => {
         const newExpanded = new Set(expandedSections);
@@ -458,11 +459,30 @@ export default function DocsPage() {
                     <a href="/quests" className="label" style={{ textDecoration: 'none' }}>Quests</a>
                     <a href="/docs" className="label" style={{ textDecoration: 'none', color: 'var(--burnt-clay)' }}>Docs</a>
                 </nav>
+                {/* Mobile Sections Button */}
+                <button
+                    className="mobile-nav"
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    style={{
+                        display: 'none',
+                        background: 'var(--graphite)',
+                        color: 'var(--warm-white)',
+                        border: 'none',
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontSize: '11px',
+                        fontFamily: 'var(--font-sans)',
+                        letterSpacing: '0.05em',
+                        textTransform: 'uppercase',
+                    }}
+                >
+                    {mobileMenuOpen ? '✕ Close' : '☰ Sections'}
+                </button>
             </header>
 
             <div className="container docs-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '48px', padding: '48px 16px', maxWidth: '1400px', margin: '0 auto' }}>
                 {/* Sidebar */}
-                <aside style={{ position: 'sticky', top: '100px', height: 'fit-content' }}>
+                <aside className={mobileMenuOpen ? "mobile-menu-open" : ""} style={{ position: 'sticky', top: '100px', height: 'fit-content' }}>
                     <div style={{ marginBottom: '24px' }}>
                         <span className="label">Documentation</span>
                         <h2 style={{ marginTop: '8px', fontSize: '1.5rem' }}>
@@ -508,7 +528,7 @@ export default function DocsPage() {
                                             {section.items.map((item) => (
                                                 <button
                                                     key={item.id}
-                                                    onClick={() => setActiveSection(item.id)}
+                                                    onClick={() => { setActiveSection(item.id); setMobileMenuOpen(false); }}
                                                     style={{
                                                         width: '100%',
                                                         textAlign: 'left',
