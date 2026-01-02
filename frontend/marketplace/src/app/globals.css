@@ -815,6 +815,24 @@ section {
     font-size: 0.6rem;
     letter-spacing: 0.08em;
   }
+
+  /* Docs page - hide sidebar by default, show on toggle */
+  .docs-layout aside {
+    display: none !important;
+  }
+
+  .docs-layout aside.mobile-menu-open {
+    display: block !important;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--alabaster);
+    z-index: 100;
+    padding: 24px;
+    overflow-y: auto;
+  }
 }
 
 /* Small Mobile - 480px and below */
@@ -932,47 +950,3 @@ section {
 }
 
 /* Dark Mode Support */
-/* Docs page mobile responsiveness */
-@media (max-width: 768px) {
-  .docs-layout {
-    grid-template-columns: 1fr !important;
-    gap: 24px !important;
-    padding: 24px 16px !important;
-  }
-
-  .docs-layout aside {
-    position: relative !important;
-    top: 0 !important;
-  }
-
-  .docs-layout nav {
-    display: none !important;
-  }
-}
-
-/* Docs page mobile navigation */
-@media (max-width: 768px) {
-  /* Show mobile sections button */
-  .mobile-nav {
-    display: inline-block !important;
-  }
-
-  /* Hide sidebar by default on mobile */
-  .docs-layout aside {
-    display: none;
-  }
-
-  /* Show sidebar when mobile menu is open */
-  .docs-layout aside.mobile-menu-open {
-    display: block !important;
-    position: fixed;
-    top: 60px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--alabaster);
-    z-index: 100;
-    padding: 24px;
-    overflow-y: auto;
-  }
-}
