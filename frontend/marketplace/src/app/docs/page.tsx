@@ -438,10 +438,19 @@ export default function DocsPage() {
                 backdropFilter: 'blur(10px)',
                 borderBottom: '1px solid var(--soft-grey)',
             }}>
-                <a href="/" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: '1.25rem', letterSpacing: '-0.02em' }}>
-                        AETHER<span style={{ fontStyle: 'italic' }}>SWARM</span>
-                    </span>
+                <a href="/" style={{ textDecoration: 'none', color: 'var(--graphite)', display: 'flex', alignItems: 'center' }}>
+                    <img
+                        src="/AstherS Logo1.svg"
+                        alt="AetherSwarm"
+                        className="logo-light"
+                        style={{ height: 'clamp(28px, 5vw, 40px)', width: 'auto' }}
+                    />
+                    <img
+                        src="/AstherS Logo2.svg"
+                        alt="AetherSwarm"
+                        className="logo-dark"
+                        style={{ height: 'clamp(28px, 5vw, 40px)', width: 'auto' }}
+                    />
                 </a>
                 <nav style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                     <a href="/" className="label" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>Home</a>
@@ -451,7 +460,7 @@ export default function DocsPage() {
                 </nav>
             </header>
 
-            <div className="container" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '48px', padding: '48px 16px', maxWidth: '1400px', margin: '0 auto' }}>
+            <div className="container docs-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '48px', padding: '48px 16px', maxWidth: '1400px', margin: '0 auto' }}>
                 {/* Sidebar */}
                 <aside style={{ position: 'sticky', top: '100px', height: 'fit-content' }}>
                     <div style={{ marginBottom: '24px' }}>

@@ -932,3 +932,20 @@ section {
 }
 
 /* Dark Mode Support */
+/* Docs page mobile responsiveness */
+@media (max-width: 768px) {
+  .docs-layout {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+    padding: 24px 16px !important;
+  }
+
+  .docs-layout aside {
+    position: relative !important;
+    top: 0 !important;
+  }
+
+  .docs-layout nav {
+    display: none !important;
+  }
+}

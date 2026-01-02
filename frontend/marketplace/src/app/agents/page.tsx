@@ -190,10 +190,19 @@ export default function AgentsPage() {
                 background: 'var(--header-bg)',
                 backdropFilter: 'blur(10px)',
             }}>
-                <a href="/" style={{ textDecoration: 'none', color: 'var(--graphite)', flexShrink: 0 }}>
-                    <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(1rem, 4vw, 1.5rem)' }}>
-                        AETHER<span style={{ fontStyle: 'italic' }}>SWARM</span>
-                    </span>
+                <a href="/" style={{ textDecoration: 'none', color: 'var(--graphite)', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+                    <img
+                        src="/AstherS Logo1.svg"
+                        alt="AetherSwarm"
+                        className="logo-light"
+                        style={{ height: 'clamp(28px, 5vw, 40px)', width: 'auto' }}
+                    />
+                    <img
+                        src="/AstherS Logo2.svg"
+                        alt="AetherSwarm"
+                        className="logo-dark"
+                        style={{ height: 'clamp(28px, 5vw, 40px)', width: 'auto' }}
+                    />
                 </a>
                 <nav className="desktop-nav" style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
                     <a href="/" className="label" style={{ textDecoration: 'none' }}>Home</a>
