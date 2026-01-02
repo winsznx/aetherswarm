@@ -8,6 +8,14 @@ export const metadata: Metadata = {
   title: "AetherSwarm — Decentralized Knowledge Expedition",
   description: "An autonomous AI agent swarm that hunts, verifies, and synthesizes knowledge using machine-to-machine micropayments. Deploy research quests and let AI agents discover verified insights.",
   keywords: ["AI agents", "autonomous", "research", "x402", "ERC-8004", "knowledge", "verification", "TEE"],
+  icons: {
+    icon: [
+      { url: '/AS Fav1.svg', type: 'image/svg+xml' },
+      { url: '/AS Fav1.png', type: 'image/png' },
+    ],
+    shortcut: '/AS Fav1.svg',
+    apple: '/AS Fav1.png',
+  },
   openGraph: {
     title: "AetherSwarm",
     description: "Decentralized Knowledge Expedition Platform",
