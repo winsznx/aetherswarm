@@ -823,7 +823,7 @@ section {
 
   .docs-layout aside.mobile-menu-open {
     display: flex !important;
-    flexDirection: column;
+    flex-direction: column;
     position: fixed;
     top: 0;
     left: 0;
