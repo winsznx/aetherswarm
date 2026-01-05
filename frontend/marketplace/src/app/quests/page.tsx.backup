@@ -1,0 +1,326 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+
+interface Quest {
+    questId: string;
+    status: string;
+    objectives: string;
+    budget: string;
+    walletAddress?: string;
+    createdAt: string;
+    explorerLinks?: {
+        questCreation?: string;
+        questWallet?: string;
+    };
+    onChainProof?: any;
+}
+
+export default function QuestsPage() {
+    const [quests, setQuests] = useState<Quest[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [creating, setCreating] = useState(false);
+    const [newQuest, setNewQuest] = useState({
+        objectives: '',
+        budget: '0.10'
+    });
+
+    const { open } = useAppKit();
+    const { address, isConnected } = useAppKitAccount();
+
+    // Fetch quests from backend
+    async function loadQuests() {
+        try {
+            setLoading(true);
+            const questEngineUrl = process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001';
+
+            const response = await fetch(`${questEngineUrl}/quests`);
+
+            if (!response.ok) {
+                console.error('Failed to load quests:', response.statusText);
+                setQuests([]);
+                return;
+            }
+
+            const data = await response.json();
+            setQuests(data.quests || []);
+
+            console.log(`Loaded ${data.quests?.length || 0} quests from backend`);
+
+        } catch (error) {
+            console.error('Error loading quests:', error);
+            setQuests([]);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    useEffect(() => {
+        loadQuests();
+
+        // Refresh every 5 seconds to show real-time updates
+        const interval = setInterval(loadQuests, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    async function createQuest() {
+        if (!isConnected) {
+            open();
+            return;
+        }
+
+        if (!newQuest.objectives.trim()) {
+            alert('Please enter quest objectives');
+            return;
+        }
+
+        try {
+            setCreating(true);
+
+            const questEngineUrl = process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001';
+
+            const response = await fetch(`${questEngineUrl}/quests`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    objectives: newQuest.objectives,
+                    budget: parseFloat(newQuest.budget),
+                    userId: address,
+                    constraints: [],
+                    sources: []
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error(`Quest creation failed: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            console.log('Quest created:', data);
+
+            // Reset form
+            setNewQuest({ objectives: '', budget: '0.10' });
+
+            // Reload quests
+            await loadQuests();
+
+            alert(`Quest created successfully! ID: ${data.questId}`);
+
+        } catch (error: any) {
+            console.error('Error creating quest:', error);
+            alert(`Failed to create quest: ${error.message}`);
+        } finally {
+            setCreating(false);
+        }
+    }
+
+    return (
+        <div style={{ minHeight: '100vh', background: 'var(--warm-white)', paddingTop: '24px' }}>
+            <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 24px' }}>
+
+                {/* Header */}
+                <div style={{ marginBottom: '32px' }}>
+                    <h1 style={{ fontSize: '36px', fontWeight: 700, margin: '0 0 8px 0' }}>
+                        🎯 Quests
+                    </h1>
+                    <p style={{ fontSize: '16px', opacity: 0.7, margin: 0 }}>
+                        Create knowledge quests and watch autonomous agents work
+                    </p>
+                </div>
+
+                {/* Create Quest Card */}
+                <div style={{
+                    background: 'white',
+                    border: '1px solid var(--graphite)',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    marginBottom: '32px'
+                }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: 600, margin: '0 0 16px 0' }}>
+                        Create New Quest
+                    </h2>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div>
+                            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+                                Research Objectives
+                            </label>
+                            <textarea
+                                value={newQuest.objectives}
+                                onChange={(e) => setNewQuest({ ...newQuest, objectives: e.target.value })}
+                                placeholder="What should the agents research? e.g., 'Research the ERC-8004 standard and its implementations'"
+                                style={{
+                                    width: '100%',
+                                    minHeight: '80px',
+                                    padding: '12px',
+                                    borderRadius: '8px',
+                                    border: '1px solid #e0e0e0',
+                                    fontSize: '14px',
+                                    fontFamily: 'inherit',
+                                    resize: 'vertical'
+                                }}
+                            />
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '16px', alignItems: 'end' }}>
+                            <div style={{ flex: 1 }}>
+                                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>
+                                    Budget (USDC)
+                                </label>
+                                <input
+                                    type="number"
+                                    value={newQuest.budget}
+                                    onChange={(e) => setNewQuest({ ...newQuest, budget: e.target.value })}
+                                    step="0.01"
+                                    min="0.01"
+                                    style={{
+                                        width: '100%',
+                                        padding: '12px',
+                                        borderRadius: '8px',
+                                        border: '1px solid #e0e0e0',
+                                        fontSize: '14px'
+                                    }}
+                                />
+                            </div>
+
+                            <button
+                                onClick={createQuest}
+                                disabled={creating || !newQuest.objectives.trim()}
+                                style={{
+                                    padding: '12px 32px',
+                                    borderRadius: '8px',
+                                    border: 'none',
+                                    background: creating ? '#ccc' : 'var(--burnt-clay)',
+                                    color: 'white',
+                                    fontSize: '14px',
+                                    fontWeight: 600,
+                                    cursor: creating ? 'not-allowed' : 'pointer'
+                                }}
+                            >
+                                {creating ? 'Creating...' : isConnected ? 'Create Quest' : 'Connect Wallet'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Quests List */}
+                <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h2 style={{ fontSize: '24px', fontWeight: 600, margin: 0 }}>
+                            Active Quests
+                        </h2>
+                        <span style={{ fontSize: '14px', opacity: 0.6 }}>
+                            {loading ? 'Loading...' : `${quests.length} quests`}
+                        </span>
+                    </div>
+
+                    {loading && quests.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                            <div style={{
+                                width: '40px',
+                                height: '40px',
+                                border: '4px solid var(--alabaster)',
+                                borderTop: '4px solid var(--burnt-clay)',
+                                borderRadius: '50%',
+                                animation: 'spin 1s linear infinite',
+                                margin: '0 auto 16px'
+                            }}></div>
+                            <p style={{ fontSize: '14px', opacity: 0.6 }}>Loading quests...</p>
+                        </div>
+                    ) : quests.length === 0 ? (
+                        <div style={{
+                            background: 'white',
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '12px',
+                            padding: '60px',
+                            textAlign: 'center'
+                        }}>
+                            <p style={{ fontSize: '16px', opacity: 0.6, margin: 0 }}>
+                                No quests yet. Create your first quest above!
+                            </p>
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {quests.map((quest) => (
+                                <div
+                                    key={quest.questId}
+                                    style={{
+                                        background: 'white',
+                                        border: '1px solid #e0e0e0',
+                                        borderRadius: '12px',
+                                        padding: '20px'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                        <div>
+                                            <span style={{
+                                                fontSize: '12px',
+                                                padding: '4px 8px',
+                                                background: quest.status === 'complete' ? '#2ecc71' :
+                                                    quest.status === 'processing' ? '#f39c12' :
+                                                        '#3498db',
+                                                color: 'white',
+                                                borderRadius: '4px',
+                                                marginRight: '8px'
+                                            }}>
+                                                {quest.status}
+                                            </span>
+                                            <span style={{ fontSize: '12px', opacity: 0.6 }}>
+                                                {quest.questId}
+                                            </span>
+                                        </div>
+                                        <span style={{ fontSize: '12px', opacity: 0.6 }}>
+                                            {new Date(quest.createdAt).toLocaleString()}
+                                        </span>
+                                    </div>
+
+                                    <p style={{ fontSize: '16px', fontWeight: 500, margin: '0 0 8px 0' }}>
+                                        {quest.objectives}
+                                    </p>
+
+                                    <div style={{
+                                        display: 'flex', gap: '16px', fontSize: '14px', opacity: 0.7' }}>
+                                            <span>Budget: ${quest.budget}</span>
+                    {
+                                    quest.walletAddress && (
+                                        <span>Wallet: {quest.walletAddress.slice(0, 6)}...{quest.walletAddress.slice(-4)}</span>
+                                    )
+                                }
+                  </div>
+
+                  {quest.explorerLinks?.questCreation && (
+                        <div style={{ marginTop: '12px' }}>
+                            <a
+                                href={quest.explorerLinks.questCreation}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    fontSize: '12px',
+                                    color: 'var(--burnt-clay)',
+                                    textDecoration: 'none'
+                                }}
+                            >
+                                View on Polygonscan →
+                            </a>
+                        </div>
+                    )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div >
+
+        <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div >
+  );
+}
