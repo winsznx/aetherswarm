@@ -27,8 +27,21 @@ if (existsSync(envPath)) {
 }
 
 // Redis connection for BullMQ
+console.log('[Coordinator] Connecting to Redis...');
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
-    maxRetriesPerRequest: null
+    maxRetriesPerRequest: null,
+    retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+    }
+});
+
+connection.on('error', (err) => {
+    console.error('[Coordinator] Redis connection error:', err);
+});
+
+connection.on('connect', () => {
+    console.log('[Coordinator] Redis connected successfully');
 });
 
 // Result queue for Quest Engine
@@ -568,9 +581,9 @@ questWorker.on('failed', (job, err) => {
 console.log('[Coordinator] Quest worker started, listening for jobs...');
 
 // Start the combined HTTP + WebSocket server
-server.listen(port, () => {
-    console.log(`[Coordinator] Server running on port ${port}`);
-    console.log(`[Coordinator] WebSocket endpoint: ws://localhost:${port}`);
-    console.log(`[Coordinator] Health endpoint: http://localhost:${port}/health`);
-    console.log(`[Coordinator] Agents endpoint: http://localhost:${port}/agents`);
+server.listen(port, '0.0.0.0', () => {
+    console.log(`[Coordinator] Server running on port ${port} (0.0.0.0)`);
+    console.log(`[Coordinator] WebSocket endpoint: ws://0.0.0.0:${port}`);
+    console.log(`[Coordinator] Health endpoint: http://0.0.0.0:${port}/health`);
+    console.log(`[Coordinator] Agents endpoint: http://0.0.0.0:${port}/agents`);
 });
