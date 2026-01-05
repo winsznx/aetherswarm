@@ -61,7 +61,8 @@ app.use(express.json());
 // --- Redis & BullMQ Setup ---
 
 const redisConnection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
-    maxRetriesPerRequest: null
+    maxRetriesPerRequest: null,
+    family: 4 // Force IPv4
 });
 
 const questQueue = new Queue('quest-queue', { connection: redisConnection });
@@ -97,7 +98,8 @@ import Redis from 'ioredis';
 const redisClient = new Redis({
     host: process.env.REDIS_HOST || 'localhost',
     port: parseInt(process.env.REDIS_PORT || '6379'),
-    maxRetriesPerRequest: null
+    maxRetriesPerRequest: null,
+    family: 4 // Force IPv4
 });
 
 const QUEST_KEY_PREFIX = 'quest:';
