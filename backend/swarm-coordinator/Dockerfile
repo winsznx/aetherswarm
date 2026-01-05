@@ -14,10 +14,7 @@ COPY . .
 # Build TypeScript
 RUN npm run build
 
-# Set port environment variable
-ENV PORT=8081
-
-# Expose port
+# Expose port (Documentation only, Railway sets PORT env var)
 EXPOSE 8081
 
 # Start
