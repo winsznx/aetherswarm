@@ -296,43 +296,41 @@ impl VerifierAgent {
         println!("[Verifier] Registered as {}", self.agent_id);
         println!("[Verifier] Connected successfully! Listening for tasks...");
 
-        // Spawn heartbeat task
-        let agent_id = self.agent_id.clone();
-        let heartbeat_handle = tokio::spawn(async move {
-            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
-            loop {
-                interval.tick().await;
-                println!("[Verifier] Heartbeat tick (would send ping if we had write access)");
-            }
-        });
+        // Heartbeat interval
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
 
-        // Listen for tasks
-        while let Some(msg) = read.next().await {
-            match msg {
-                Ok(Message::Text(text)) => {
-                    if let Some(response) = self.handle_task(&text).await {
-                        write.send(Message::Text(response.into())).await?;
+        loop {
+            tokio::select! {
+                msg = read.next() => {
+                    match msg {
+                        Some(Ok(Message::Text(text))) => {
+                            if let Some(response) = self.handle_task(&text).await {
+                                write.send(Message::Text(response.into())).await?;
+                            }
+                        }
+                        Some(Ok(Message::Ping(data))) => {
+                            println!("[Verifier] Received ping, sending pong");
+                            write.send(Message::Pong(data)).await?;
+                        }
+                        Some(Ok(Message::Close(_))) => {
+                            println!("[Verifier] Connection closed by server");
+                            break;
+                        }
+                        Some(Err(e)) => {
+                            eprintln!("[Verifier] WebSocket error: {}", e);
+                            return Err(Box::new(e));
+                        }
+                        None => break,
+                        _ => {}
                     }
                 }
-                Ok(Message::Ping(data)) => {
-                    println!("[Verifier] Received ping, sending pong");
-                    write.send(Message::Pong(data)).await?;
+                _ = interval.tick() => {
+                    println!("[Verifier] Sending heartbeat ping");
+                    write.send(Message::Ping(vec![])).await?;
                 }
-                Ok(Message::Close(_)) => {
-                    println!("[Verifier] Connection closed by server");
-                    heartbeat_handle.abort();
-                    break;
-                }
-                Err(e) => {
-                    eprintln!("[Verifier] WebSocket error: {}", e);
-                    heartbeat_handle.abort();
-                    return Err(Box::new(e));
-                }
-                _ => {}
             }
         }
 
-        heartbeat_handle.abort();
         Ok(())
     }
 }
