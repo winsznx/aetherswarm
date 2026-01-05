@@ -15,8 +15,16 @@ import { WebSocketServer, WebSocket } from 'ws';
 import * as dotenv from 'dotenv';
 import { ethers } from 'ethers';
 import http from 'http';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
-dotenv.config({ path: '../../.env' });
+// Load .env only if it exists (for local development)
+const envPath = join(__dirname, '../../.env');
+if (existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+} else {
+    console.log('[Coordinator] No .env file found, using environment variables from Railway');
+}
 
 // Redis connection for BullMQ
 const connection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
