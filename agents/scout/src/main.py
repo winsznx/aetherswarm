@@ -579,19 +579,12 @@ class ScoutAgent:
         return sources
     
     async def _check_x402_support(self, url: str) -> bool:
-        """Check if endpoint supports x402 payments"""
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.options(url, timeout=aiohttp.ClientTimeout(total=5)) as response:
-                    # Check for x402 headers
         """Check if an endpoint supports x402 payment"""
         try:
             if not self.x402_client:
                 return False
 
-            # Use OPTIONS request or just try fetch and check for 402/401?
-            # Faremeter client handles 402 negotiation automatically.
-            # Simplified check:
+            # Simplified check using fetch_with_payment to detect 402/headers
             response = await self.x402_client.fetch_with_payment(url)
             return 'X-PAYMENT' in response.headers or response.status == 402
         except Exception:
