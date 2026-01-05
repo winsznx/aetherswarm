@@ -56,7 +56,21 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment-Response'],
     credentials: true,
 }));
+allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment-Response'],
+    credentials: true,
+}));
 app.use(express.json());
+
+// DEBUG: Log all requests
+app.use((req, res, next) => {
+    console.log(`[Quest Engine] ${req.method} ${req.url} - Origin: ${req.headers.origin}`);
+    next();
+});
+
+// Health check
+app.get('/', (req, res) => {
+    res.status(200).send('Quest Engine OK');
+});
 
 // --- Redis & BullMQ Setup ---
 
@@ -584,8 +598,8 @@ app.get('/payment-info', (req: Request, res: Response) => {
 
 // --- Start Server ---
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
+const PORT = parseInt(process.env.PORT || '3001');
+app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Quest Engine] Running on port ${PORT}`);
     console.log(`[Quest Engine] Crossmint: ${process.env.CROSSMINT_API_KEY ? 'configured' : 'not configured'}`);
     console.log(`[Quest Engine] x402 Facilitator: enabled`);
