@@ -359,7 +359,20 @@ class SynthesizerAgent:
         """Handle synthesis task from coordinator"""
         task_type = task.get("type")
         
+        # Handle registration confirmation
+        if task_type == "registered":
+            print("[Synthesizer] Registration confirmed by coordinator")
+            return None
+        
+        # Handle ping
+        if task_type == "ping":
+            return {
+                "type": "pong",
+                "agentId": self.agent_id
+            }
+        
         if task_type != "synthesize_task":
+            print(f"[Synthesizer] Unknown task type: {task_type}")
             return None
         
         quest_id = task.get("questId")

@@ -237,6 +237,11 @@ impl VerifierAgent {
             "ping" => {
                 Some(json!({"type": "pong", "agentId": self.agent_id}).to_string())
             }
+            "registered" => {
+                // Coordinator confirmation - agent successfully registered
+                println!("[Verifier] Registration confirmed by coordinator");
+                None
+            }
             _ => {
                 println!("[Verifier] Unknown task type: {}", task_type);
                 None

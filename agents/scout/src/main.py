@@ -121,6 +121,21 @@ class ScoutAgent:
         
         print(f"[Scout] Received task: {task_type} for quest {quest_id}")
         
+        # Handle registration confirmation
+        if task_type == "registered":
+            print("[Scout] Registration confirmed by coordinator")
+            return
+        
+        # Handle ping
+        if task_type == "ping":
+            pong = {
+                "type": "pong",
+                "agentId": self.agent_id
+            }
+            await self.ws.send(json.dumps(pong))
+            print("[Scout] Responded to ping")
+            return
+        
         if task_type == "query_quest":
             results = []
             payment_proofs = []
@@ -194,6 +209,8 @@ class ScoutAgent:
             if self.premium and quest_id:
                 self.premium.complete_quest(quest_id)
                 print(f"[Scout] Quest {quest_id} rate limits reset")
+        else:
+            print(f"[Scout] Unknown task type: {task_type}")
 
 
     async def _perform_real_search(self, query: str) -> List[Dict]:
