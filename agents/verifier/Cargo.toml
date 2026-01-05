@@ -18,4 +18,5 @@ url = "2.5"
 ethers = { version = "2.0", default-features = false, features = ["abigen", "ws", "rustls"] }
 home = "=0.5.11"
 base64ct = "<1.8.0"
+openssl = { version = "0.10", features = ["vendored"] }
 
