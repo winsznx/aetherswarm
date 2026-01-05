@@ -85,31 +85,37 @@ class IPFSClient:
     def __init__(self):
         self.gateway_url = os.getenv("IPFS_GATEWAY", "https://ipfs.io")
         self.api_url = os.getenv("IPFS_API_URL", "https://api.pinata.cloud")
-        self.api_key = os.getenv("PINATA_API_KEY", "")
-        
     async def upload_json(self, data: Dict) -> str:
         """Upload JSON data to IPFS and return CID"""
+        # Support both JWT (preferred) and API Key
+        self.api_key = os.getenv("PINATA_JWT") or os.getenv("PINATA_API_KEY", "")
+        
         if not self.api_key:
-            # Mock for development
-            content = json.dumps(data)
-            cid = f"Qm{hashlib.sha256(content.encode()).hexdigest()[:44]}"
-            return f"ipfs://{cid}"
+            raise ValueError("PINATA_JWT (or PINATA_API_KEY) is missing. Real IPFS upload required.")
         
         import aiohttp
         async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self.api_url}/pinning/pinJSONToIPFS",
-                headers={
-                    "Authorization": f"Bearer {self.api_key}",
-                    "Content-Type": "application/json"
-                },
-                json={"pinataContent": data}
-            ) as response:
-                if response.status == 200:
-                    result = await response.json()
-                    return f"ipfs://{result['IpfsHash']}"
-                else:
-                    raise Exception(f"IPFS upload failed: {await response.text()}")
+            try:
+                print(f"[IPFS] Uploading artifact to Pinata...")
+                async with session.post(
+                    f"{self.api_url}/pinning/pinJSONToIPFS",
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={"pinataContent": data}
+                ) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        cid = result['IpfsHash']
+                        print(f"[IPFS] Upload successful: {cid}")
+                        return f"ipfs://{cid}"
+                    else:
+                        error_text = await response.text()
+                        raise Exception(f"IPFS upload failed with status {response.status}: {error_text}")
+            except Exception as e:
+                print(f"[IPFS] Upload error: {e}")
+                raise e
 
 
 class SynthesizerAgent:
@@ -264,11 +270,89 @@ class SynthesizerAgent:
             "name": objective
         })
         
+        # Create RICH Summary
+        summary_text = f"Synthesized {len(verified_data)} sources for: {objective}"
+        
+        # Extract highlights from data
+        highlights = []
+        objective_lower = objective.lower()
+        
+        for chunk in verified_data:
+            data = chunk.get("data", {})
+            source = chunk.get("source", "")
+            
+            # Debug: log what we're receiving
+            print(f"[Synthesizer] Processing chunk from source: {source}")
+            print(f"[Synthesizer] Data keys: {list(data.keys()) if isinstance(data, dict) else 'not a dict'}")
+            if isinstance(data, dict) and "answer" in data:
+                print(f"[Synthesizer] Answer field present: {bool(data.get('answer'))}")
+                if data.get("answer"):
+                    print(f"[Synthesizer] Answer preview: {data['answer'][:100]}...")
+            
+            if isinstance(data, dict):
+                # PRIORITY 1: Tavily answer (most relevant for factual queries)
+                if "answer" in data and data["answer"]:
+                    # Use Tavily's LLM-generated answer directly
+                    answer = data["answer"].strip()
+                    if answer:
+                        highlights.append(answer)
+                        # Also include result count if available
+                        if "results" in data and isinstance(data["results"], list):
+                            count = len(data["results"])
+                            if count > 0:
+                                highlights.append(f"({count} sources cited)")
+                        continue  # Skip other processing for Tavily answers
+                
+                # PRIORITY 2: Crypto Price/Market Data
+                if "current_price_usd" in data:
+                    name = data.get("name", "Asset")
+                    
+                    # Check what the query is asking for
+                    if "market cap" in objective_lower or "marketcap" in objective_lower:
+                        # Show market cap
+                        market_cap = data.get("market_cap_usd", 0)
+                        if market_cap > 1_000_000_000:
+                            cap_str = f"${market_cap / 1_000_000_000:.2f}B"
+                        elif market_cap > 1_000_000:
+                            cap_str = f"${market_cap / 1_000_000:.2f}M"
+                        else:
+                            cap_str = f"${market_cap:,.0f}"
+                        highlights.append(f"{name} Market Cap: {cap_str}")
+                    else:
+                        # Show price
+                        price = data.get("current_price_usd")
+                        change = data.get("price_change_24h", 0)
+                        symbol = "🟢" if change >= 0 else "🔴"
+                        highlights.append(f"{name}: ${price:,.2f} ({change:+.2f}%) {symbol}")
+                
+                # PRIORITY 3: HackerNews/News (fallback)
+                elif "results" in data and isinstance(data["results"], list):
+                    count = len(data["results"])
+                    highlights.append(f"Found {count} recent discussions/articles")
+                    if count > 0:
+                        top = data["results"][0]
+                        highlights.append(f"Top story: {top.get('title')}")
+                
+                # PRIORITY 4: Generic data extraction
+                elif "query" in data and source == "tavily":
+                    # Tavily data without answer - extract from results
+                    if "results" in data and isinstance(data["results"], list) and len(data["results"]) > 0:
+                        top_result = data["results"][0]
+                        if top_result.get("content"):
+                            # Use first result's content as summary
+                            content = top_result["content"][:200]  # First 200 chars
+                            highlights.append(content + "...")
+                        elif top_result.get("title"):
+                            highlights.append(top_result["title"])
+
+        if highlights:
+            summary_text = " | ".join(highlights)
+
         return {
             "entityCount": len(entities),
             "relationshipCount": len(relationships),
             "types": ["DataSource", "Objective"],
-            "summary": f"Graph synthesized {len(verified_data)} sources for: {objective}"
+            "summary": summary_text
         }
     
     async def handle_task(self, task: Dict) -> Optional[Dict]:
@@ -303,6 +387,7 @@ class SynthesizerAgent:
                     "metadataURI": artifact.metadata_uri,
                     "contributors": artifact.contributors,
                     "graphSummary": artifact.graph_summary,
+                    "summary": artifact.graph_summary.get("summary", "Quest completed successfully"),  # Add for UI display
                     "createdAt": artifact.created_at
                 }
             }
