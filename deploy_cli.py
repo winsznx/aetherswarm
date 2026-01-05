@@ -26,6 +26,18 @@ def deploy_service(service):
     
     shutil.copytree(src_path, target_dir, ignore=shutil.ignore_patterns("node_modules", "target", "venv", ".venv", "__pycache__", ".git", ".DS_Store", "dist", "build"))
     
+    # --- FIX FOR NODE SERVICES ---
+    # Quest Engine and Coordinator need 'npm install' instead of 'npm ci' 
+    # because they don't have the root lockfile in isolation.
+    if name in ["Quest Engine", "Swarm Coordinator"]:
+        nixpacks_content = """
+[phases.install]
+cmds = ["npm install"]
+"""
+        with open(os.path.join(target_dir, "nixpacks.toml"), "w") as f:
+            f.write(nixpacks_content)
+        print(f"Added nixpacks.toml to force npm install for {name}", flush=True)
+
     print(f"Linking {name}...", flush=True)
     # Use -p and -s to avoid prompts. Pass \n just in case.
     try:
