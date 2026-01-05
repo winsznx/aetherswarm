@@ -2,10 +2,7 @@
 nixPkgs = ["rustc", "cargo", "gcc", "cmake", "pkg-config"]
 
 [phases.build]
-cmds = ["rm -f Cargo.lock", "cargo build --release"]
-
-[phases.install]
-cmds = ["mkdir -p /app/bin", "cp target/release/verifier-agent /app/bin/"]
+cmds = ["rm -f Cargo.lock", "cargo build --release", "mkdir -p /app/bin", "cp target/release/verifier-agent /app/bin/"]
 
 [start]
 cmd = "/app/bin/verifier-agent"
