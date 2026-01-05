@@ -98,9 +98,7 @@ interface StoredQuest {
 
 // Redis-based quest storage (persists across restarts)
 import Redis from 'ioredis';
-const redisClient = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: parseInt(process.env.REDIS_PORT || '6379'),
+const redisClient = new Redis(redisUrl, { // Use same hardcoded URL
     maxRetriesPerRequest: null,
     family: 4 // Force IPv4
 });
