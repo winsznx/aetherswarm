@@ -220,7 +220,7 @@ export default function Home() {
 
   // USDC Payment
   const [paymentStep, setPaymentStep] = useState<'idle' | 'approving' | 'paying' | 'creating' | 'done'>('idle');
-  const { writeContract, data: txHash, error: txError, isPending } = useWriteContract();
+  const { writeContractAsync, data: txHash, error: txError, isPending } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash: txHash });
 
   // Platform treasury address (receives USDC)
@@ -308,12 +308,14 @@ export default function Home() {
       });
 
       // Transfer USDC to treasury - this should trigger wallet popup
-      writeContract({
+      const hash = await writeContractAsync({
         address: usdcAddress as `0x${string}`,
         abi: ERC20_ABI,
         functionName: 'transfer',
         args: [TREASURY_ADDRESS as `0x${string}`, amount],
       });
+
+      console.log('[Quest] Transaction submitted:', hash);
 
     } catch (error) {
       console.error('[Quest] Payment initiation failed:', error);
