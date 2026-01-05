@@ -3,6 +3,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { QuestWorkflowGuide } from '@/components/QuestWorkflowGuide';
+import { PaymentInfoModal } from '@/components/PaymentInfoModal';
+import { QuestProgressModal } from '@/components/QuestProgressModal';
+import { QuestDetailsModal } from '@/components/QuestDetailsModal';
 
 interface Quest {
     questId: string;
@@ -36,6 +41,16 @@ export default function QuestsPage() {
     const [questObjectives, setQuestObjectives] = useState('');
     const [questBudget, setQuestBudget] = useState('10');
     const [isCreating, setIsCreating] = useState(false);
+    const [showWorkflowGuide, setShowWorkflowGuide] = useState(false);
+    const [showPaymentInfo, setShowPaymentInfo] = useState(false);
+
+    // Progress Modal State
+    const [activeQuestId, setActiveQuestId] = useState<string | null>(null);
+    const [showProgressModal, setShowProgressModal] = useState(false);
+
+    // Details Modal State
+    const [selectedQuest, setSelectedQuest] = useState<Quest | null>(null);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
 
     const { open } = useAppKit();
     const { address, isConnected } = useAppKitAccount();
@@ -56,8 +71,8 @@ export default function QuestsPage() {
         };
 
         fetchQuests();
-        // Poll for updates every 10 seconds
-        const interval = setInterval(fetchQuests, 10000);
+        // Poll for updates every 5 seconds
+        const interval = setInterval(fetchQuests, 5000);
         return () => clearInterval(interval);
     }, []);
 
@@ -87,10 +102,17 @@ export default function QuestsPage() {
             if (res.ok) {
                 const data = await res.json();
                 console.log('Quest created:', data);
+
+                // Close create modal and open progress modal
                 setShowCreateModal(false);
                 setQuestTitle('');
                 setQuestObjectives('');
                 setQuestBudget('10');
+
+                // Set active quest for progress view
+                setActiveQuestId(data.questId);
+                setShowProgressModal(true);
+
                 // Refresh quests list
                 const questsRes = await fetch(`${process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001'}/quests`);
                 if (questsRes.ok) {
@@ -106,6 +128,16 @@ export default function QuestsPage() {
             alert('Failed to create quest. Make sure the Quest Engine is running.');
         } finally {
             setIsCreating(false);
+        }
+    };
+
+    const handleQuestClick = (quest: Quest) => {
+        if (quest.status !== 'completed') {
+            setActiveQuestId(quest.questId);
+            setShowProgressModal(true);
+        } else {
+            setSelectedQuest(quest);
+            setShowDetailsModal(true);
         }
     };
 
@@ -146,6 +178,23 @@ export default function QuestsPage() {
                     <a href="/agents" className="label" style={{ textDecoration: 'none' }}>Agents</a>
                     <a href="/quests" className="label" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>Quests</a>
                     <a href="/settings" className="label" style={{ textDecoration: 'none' }}>Settings</a>
+                    <div style={{ width: '1px', height: '20px', background: 'var(--soft-grey)' }}></div>
+                    <button
+                        onClick={() => setShowWorkflowGuide(true)}
+                        style={{
+                            background: 'none',
+                            border: 'none',
+                            color: 'var(--graphite)',
+                            fontSize: '12px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em'
+                        }}
+                    >
+                        How it Works
+                    </button>
+                    <ThemeToggle />
                 </nav>
                 <nav className="mobile-nav" style={{ display: 'none', gap: '8px', alignItems: 'center' }}>
                     <button
@@ -233,7 +282,7 @@ export default function QuestsPage() {
                                 whiteSpace: 'nowrap'
                             }}
                         >
-                            + New Quest
+                            <span>+ New Quest</span>
                         </button>
                     </motion.div>
 
@@ -279,6 +328,7 @@ export default function QuestsPage() {
                             {filteredQuests.map((quest, i) => (
                                 <motion.div
                                     key={quest.questId}
+                                    onClick={() => handleQuestClick(quest)}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
@@ -346,6 +396,7 @@ export default function QuestsPage() {
                                                     href={quest.explorerLinks.questWallet}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
                                                     style={{
                                                         fontSize: '11px',
                                                         fontFamily: 'monospace',
@@ -374,6 +425,7 @@ export default function QuestsPage() {
                                                 href={quest.explorerLinks.paymentTx}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
+                                                onClick={(e) => e.stopPropagation()}
                                                 style={{
                                                     display: 'inline-flex',
                                                     alignItems: 'center',
@@ -412,7 +464,10 @@ export default function QuestsPage() {
                                                     lineHeight: 1.5,
                                                 }}>
                                                     <div className="label" style={{ marginBottom: '4px' }}>Result</div>
-                                                    {quest.results.summary}
+                                                    {quest.results.summary.slice(0, 150)}{quest.results.summary.length > 150 ? '...' : ''}
+                                                    <div style={{ marginTop: '8px', fontSize: '10px', color: 'var(--mid-grey)', fontWeight: 600 }}>
+                                                        CLICK TO VIEW FULL REPORT & SOURCES →
+                                                    </div>
                                                 </div>
                                             )}
 
@@ -422,6 +477,7 @@ export default function QuestsPage() {
                                                     href={quest.results.attestationExplorerLink}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
                                                     style={{
                                                         display: 'inline-flex',
                                                         alignItems: 'center',
@@ -472,7 +528,7 @@ export default function QuestsPage() {
                 </div>
             </main>
 
-            {/* Quest Creation Modal */}
+            {/* Quest Creation Modal - Same as before */}
             <AnimatePresence>
                 {showCreateModal && (
                     <>
@@ -610,6 +666,18 @@ export default function QuestsPage() {
                     </>
                 )}
             </AnimatePresence>
+            <QuestWorkflowGuide isOpen={showWorkflowGuide} onClose={() => setShowWorkflowGuide(false)} />
+            <PaymentInfoModal isOpen={showPaymentInfo} onClose={() => setShowPaymentInfo(false)} />
+            <QuestProgressModal
+                questId={activeQuestId}
+                isOpen={showProgressModal}
+                onClose={() => setShowProgressModal(false)}
+            />
+            <QuestDetailsModal
+                quest={selectedQuest}
+                isOpen={showDetailsModal}
+                onClose={() => setShowDetailsModal(false)}
+            />
         </div>
     );
 }

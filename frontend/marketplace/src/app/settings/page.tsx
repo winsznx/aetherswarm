@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/components/ThemeProvider';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Settings {
     walletAddress: string;
@@ -91,6 +92,7 @@ export default function SettingsPage() {
                     <a href="/agents" className="label" style={{ textDecoration: 'none' }}>Agents</a>
                     <a href="/quests" className="label" style={{ textDecoration: 'none' }}>Quests</a>
                     <a href="/settings" className="label" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>Settings</a>
+                    <ThemeToggle />
                 </nav>
                 <nav className="mobile-nav" style={{ display: 'none', gap: '8px', alignItems: 'center' }}>
                     <button
@@ -392,7 +394,7 @@ export default function SettingsPage() {
                             </motion.span>
                         )}
                         <button onClick={handleSave} className="btn btn-primary" style={{ padding: '16px 40px' }}>
-                            Save Changes
+                            <span>Save Changes</span>
                         </button>
                     </div>
                 </div>

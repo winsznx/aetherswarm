@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronRight, Book, Code, Rocket, Zap, Shield, Globe } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function DocsPage() {
     const [activeSection, setActiveSection] = useState<string>('overview');
@@ -130,29 +131,27 @@ export default function DocsPage() {
             content: (
                 <div>
                     <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
-                        Get AetherSwarm running locally in 5 minutes.
+                        Get AetherSwarm running locally in 2 minutes with our automated script.
                     </p>
 
-                    <div style={{ background: 'var(--graphite)', color: 'var(--warm-white)', padding: '24px', marginBottom: '24px', fontFamily: 'monospace', fontSize: '13px', overflowX: 'auto' }}>
+                    <div style={{ background: 'var(--graphite)', color: 'var(--warm-white)', padding: '24px', marginBottom: '24px', fontFamily: 'monospace', fontSize: '13px', overflowX: 'auto', borderRadius: '8px' }}>
                         <div># 1. Clone repository</div>
                         <div>git clone https://github.com/yourusername/aetherswarm.git</div>
                         <div>cd aetherswarm</div>
-                        <div style={{ marginTop: '16px' }}># 2. Install dependencies</div>
-                        <div>npm install</div>
-                        <div style={{ marginTop: '16px' }}># 3. Configure environment</div>
+                        <div style={{ marginTop: '16px' }}># 2. Configure environment</div>
                         <div>cp .env.example .env</div>
-                        <div style={{ marginTop: '16px' }}># 4. Start services</div>
-                        <div>npm run dev:all</div>
+                        <div style={{ marginTop: '16px' }}># 3. Start everything (Backend, Frontend, Agents)</div>
+                        <div>./start-system.sh</div>
                     </div>
 
                     <h3 style={{ marginTop: '32px', marginBottom: '16px' }}>Create Your First Quest</h3>
-                    <div style={{ background: 'var(--limestone)', padding: '20px', border: '1px solid var(--soft-grey)' }}>
-                        <p style={{ marginBottom: '12px', fontSize: '14px' }}>Via UI:</p>
+                    <div style={{ background: 'var(--limestone)', padding: '20px', border: '1px solid var(--soft-grey)', borderRadius: '8px' }}>
+                        <p style={{ marginBottom: '12px', fontSize: '14px' }}>Once the system is running:</p>
                         <ol style={{ paddingLeft: '20px', lineHeight: 1.8, fontSize: '14px' }}>
                             <li>Navigate to <code>http://localhost:3000/quests</code></li>
                             <li>Click "+ New Quest"</li>
-                            <li>Fill in objectives and budget</li>
-                            <li>Monitor progress in real-time</li>
+                            <li>Enter an objective (e.g., "Analyze Bitcoin price trends")</li>
+                            <li>Set a budget and click "Create Quest"</li>
                         </ol>
                     </div>
                 </div>
@@ -163,7 +162,7 @@ export default function DocsPage() {
             content: (
                 <div>
                     <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
-                        AetherSwarm implements a four-layer architecture designed for production deployment.
+                        A novel 3-layer architecture enables autonomous agent economies.
                     </p>
 
                     <div style={{ display: 'grid', gap: '16px' }}>
@@ -171,20 +170,20 @@ export default function DocsPage() {
                             {
                                 layer: 'Layer 1',
                                 title: 'Quest Orchestration',
-                                desc: 'Quest Engine receives requests, creates wallets (Crossmint), stores in Redis',
-                                tech: 'Node.js + Express + TypeScript'
+                                desc: 'Quest Engine + Swarm Coordinator. Manages wallets and workflow.',
+                                tech: 'Node.js, Express, BullMQ'
                             },
                             {
                                 layer: 'Layer 2',
-                                title: 'Agent Execution',
-                                desc: 'Swarm Coordinator orchestrates Scout → Verifier → Synthesizer workflow',
-                                tech: 'BullMQ + WebSockets'
+                                title: 'Autonomous Agents',
+                                desc: 'Scout (Python/x402), Verifier (Rust/TEE), Synthesizer (Python/Merkle).',
+                                tech: 'Python, Rust, EigenCloud'
                             },
                             {
                                 layer: 'Layer 3',
-                                title: 'Blockchain Settlement',
-                                desc: 'ERC-8004 registry, reputation tracking, payment settlement on Polygon/Base',
-                                tech: 'Solidity + ethers.js'
+                                title: 'Settlement & Registry',
+                                desc: 'ERC-8004 Identity/Reputation Registry and Payment Settlement.',
+                                tech: 'Polygon Amoy, Solidity'
                             },
                             {
                                 layer: 'Layer 4',
@@ -224,11 +223,11 @@ export default function DocsPage() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {[
-                            { status: 'QUEUED', desc: 'Quest created, waiting for coordinator assignment', color: 'var(--mid-grey)' },
-                            { status: 'SCOUTING', desc: 'Scout agent fetches data (may use x402 payments)', color: 'var(--burnt-clay)' },
-                            { status: 'VERIFYING', desc: 'Verifier validates data in TEE', color: 'var(--burnt-clay)' },
-                            { status: 'SYNTHESIZING', desc: 'Synthesizer creates artifact + uploads to IPFS', color: 'var(--burnt-clay)' },
-                            { status: 'COMPLETE', desc: 'Agents receive payouts (70/20/10 split)', color: 'var(--olive-drab)' },
+                            { status: 'QUEUED', desc: 'Quest created, waiting for coordinator assignment.', color: 'var(--mid-grey)' },
+                            { status: 'SCOUTING', desc: 'Scout agent hunts for data. Uses "Fast Path" for crypto prices or "Premium Search" (Tavily) for deep research.', color: 'var(--burnt-clay)' },
+                            { status: 'VERIFYING', desc: 'Verifier validates data integrity inside an Intel TDX Enclave (TEE).', color: 'var(--burnt-clay)' },
+                            { status: 'SYNTHESIZING', desc: 'Synthesizer builds a Merkle tree and uploads the final artifact to IPFS.', color: 'var(--burnt-clay)' },
+                            { status: 'COMPLETE', desc: 'Quest finished. Agents paid (70/20/10 split). Artifact minting.', color: 'var(--olive-drab)' },
                         ].map((phase, i) => (
                             <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
                                 <div style={{
@@ -250,16 +249,6 @@ export default function DocsPage() {
                             </div>
                         ))}
                     </div>
-
-                    <div style={{ marginTop: '32px', padding: '20px', background: 'var(--limestone)', border: '1px solid var(--soft-grey)' }}>
-                        <h4 style={{ marginBottom: '12px' }}>⏱️ Expected Timeline</h4>
-                        <ul style={{ listStyle: 'none', padding: 0, fontSize: '14px', lineHeight: 1.8 }}>
-                            <li>Scouting: ~10 seconds</li>
-                            <li>Verifying: ~5 seconds</li>
-                            <li>Synthesizing: ~10 seconds</li>
-                            <li><strong>Total: ~25 seconds</strong></li>
-                        </ul>
-                    </div>
                 </div>
             )
         },
@@ -268,36 +257,31 @@ export default function DocsPage() {
             content: (
                 <div>
                     <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
-                        Scout agents automatically determine the appropriate tier based on quest budget.
+                        Scout agents automatically optimize their strategy based on your budget.
                     </p>
 
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                            <thead>
-                                <tr style={{ background: 'var(--graphite)', color: 'var(--warm-white)' }}>
-                                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Tier</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Budget</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Max Sources</th>
-                                    <th style={{ padding: '12px', textAlign: 'left', fontSize: '11px', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Use Case</th>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                        <thead>
+                            <tr style={{ background: 'var(--graphite)', color: 'var(--warm-white)' }}>
+                                <th style={{ padding: '12px', textAlign: 'left' }}>Tier</th>
+                                <th style={{ padding: '12px', textAlign: 'left' }}>Budget</th>
+                                <th style={{ padding: '12px', textAlign: 'left' }}>Strategy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[
+                                { tier: 'BASIC', budget: '$1', strategy: 'Crypto "Fast Path" (Coingecko) or Single Source' },
+                                { tier: 'STANDARD', budget: '$5', strategy: 'Multi-source Web Search (Tavily)' },
+                                { tier: 'PREMIUM', budget: '$10+', strategy: 'Deep Research + Paid API Access' },
+                            ].map((row, i) => (
+                                <tr key={i} style={{ borderBottom: '1px solid var(--soft-grey)', background: i % 2 === 0 ? 'var(--warm-white)' : 'var(--limestone)' }}>
+                                    <td style={{ padding: '16px', fontWeight: 600 }}>{row.tier}</td>
+                                    <td style={{ padding: '16px' }}>{row.budget}</td>
+                                    <td style={{ padding: '16px' }}>{row.strategy}</td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                {[
-                                    { tier: 'BASIC', budget: '$0-1', sources: '1', useCase: 'Simple queries' },
-                                    { tier: 'STANDARD', budget: '$1-5', sources: '2', useCase: 'Multi-source research' },
-                                    { tier: 'PREMIUM', budget: '$5-10', sources: '3', useCase: 'In-depth analysis' },
-                                    { tier: 'ENTERPRISE', budget: '$10+', sources: '4+', useCase: 'Comprehensive reports' },
-                                ].map((row, i) => (
-                                    <tr key={i} style={{ borderBottom: '1px solid var(--soft-grey)', background: i % 2 === 0 ? 'var(--warm-white)' : 'var(--limestone)' }}>
-                                        <td style={{ padding: '16px', fontWeight: 600 }}>{row.tier}</td>
-                                        <td style={{ padding: '16px' }}>{row.budget}</td>
-                                        <td style={{ padding: '16px' }}>{row.sources}</td>
-                                        <td style={{ padding: '16px', color: 'var(--mid-grey)' }}>{row.useCase}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             )
         },
@@ -308,39 +292,23 @@ export default function DocsPage() {
                     <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
                         Understanding how USDC flows through the system.
                     </p>
-
-                    <h3 style={{ marginTop: '32px', marginBottom: '16px' }}>Example: $25 Quest</h3>
-                    <div style={{ background: 'var(--limestone)', padding: '24px', border: '1px solid var(--soft-grey)', marginBottom: '24px' }}>
-                        <div style={{ fontSize: '14px', lineHeight: 2 }}>
-                            <div>User pays: <strong>$25 USDC</strong></div>
-                            <div style={{ paddingLeft: '20px' }}>↓</div>
-                            <div>Quest Wallet (Crossmint)</div>
-                            <div style={{ paddingLeft: '20px' }}>↓</div>
-                            <div>Upon completion:</div>
-                            <div style={{ paddingLeft: '40px' }}>├─ Scout: <strong>$17.50</strong> (70%)</div>
-                            <div style={{ paddingLeft: '40px' }}>├─ Verifier: <strong>$5.00</strong> (20%)</div>
-                            <div style={{ paddingLeft: '40px' }}>└─ Synthesizer: <strong>$2.50</strong> (10%)</div>
+                    <h3 style={{ marginBottom: '16px' }}>Automatic Settlement</h3>
+                    <div style={{ background: 'var(--limestone)', padding: '24px', borderRadius: '8px', border: '1px solid var(--soft-grey)' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <h4 style={{ marginBottom: '8px' }}>Scout (70%)</h4>
+                                <p style={{ fontSize: '13px', color: 'var(--mid-grey)' }}>Pays for API access & compute.</p>
+                            </div>
+                            <div>
+                                <h4 style={{ marginBottom: '8px' }}>Verifier (20%)</h4>
+                                <p style={{ fontSize: '13px', color: 'var(--mid-grey)' }}>Pays for TEE compute usage.</p>
+                            </div>
+                            <div>
+                                <h4 style={{ marginBottom: '8px' }}>Synthesizer (10%)</h4>
+                                <p style={{ fontSize: '13px', color: 'var(--mid-grey)' }}>Pays for IPFS storage.</p>
+                            </div>
                         </div>
                     </div>
-
-                    <h3 style={{ marginTop: '32px', marginBottom: '16px' }}>Cost Breakdown</h3>
-                    <table style={{ width: '100%', fontSize: '14px' }}>
-                        <tbody>
-                            {[
-                                { item: 'User Payment', cost: '$25', payer: 'User' },
-                                { item: 'API Calls', cost: '$0.01-0.10 each', payer: 'Scout (from allocation)' },
-                                { item: 'Gas Fees', cost: '~$0.001 normally', payer: 'OpenMid (FREE!)' },
-                                { item: 'ERC-8004 Registration', cost: '$0 (testnet)', payer: 'OpenMid (FREE!)' },
-                                { item: 'IPFS Storage', cost: '$0.01', payer: 'Synthesizer (from allocation)' },
-                            ].map((row, i) => (
-                                <tr key={i} style={{ borderBottom: '1px solid var(--soft-grey)' }}>
-                                    <td style={{ padding: '12px' }}>{row.item}</td>
-                                    <td style={{ padding: '12px', fontWeight: 600 }}>{row.cost}</td>
-                                    <td style={{ padding: '12px', color: 'var(--mid-grey)' }}>{row.payer}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
                 </div>
             )
         },
@@ -349,23 +317,17 @@ export default function DocsPage() {
             content: (
                 <div>
                     <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
-                        x402 is an HTTP-native payment protocol that enables AI agents to autonomously pay for APIs.
+                        x402 is an HTTP-native payment protocol (Status Code 402: Payment Required) that AetherSwarm uses to let agents pay for data.
                     </p>
-
-                    <div style={{ background: 'var(--graphite)', color: 'var(--warm-white)', padding: '24px', marginBottom: '24px' }}>
-                        <h4 style={{ color: 'var(--warm-white)', marginBottom: '16px' }}>The Flow</h4>
-                        <div style={{ fontSize: '13px', lineHeight: 2, fontFamily: 'monospace' }}>
-                            <div>1. Agent → API: GET /data</div>
-                            <div>2. API → Agent: 402 Payment Required</div>
-                            <div>3. Agent signs EIP-712 payment</div>
-                            <div>4. Agent → Facilitator: Verify payment</div>
-                            <div>5. Facilitator → Blockchain: Settle USDC</div>
-                            <div>6. Facilitator → Agent: Payment proof</div>
-                            <div>7. Agent → API: GET /data + X-402-Payment header</div>
-                            <div>8. API → Agent: 200 OK + data</div>
-                        </div>
+                    <div style={{ background: 'var(--graphite)', color: 'var(--warm-white)', padding: '24px', borderRadius: '8px' }}>
+                        <code style={{ fontSize: '13px', fontFamily: 'monospace' }}>
+                            1. Agent GET /premium-data<br />
+                            2. Server returns 402 Payment Required + Price<br />
+                            3. Agent signs payment (EIP-712)<br />
+                            4. Agent retries GET with Proof-of-Payment<br />
+                            5. Server returns 200 OK + Data
+                        </code>
                     </div>
-
                     <h3 style={{ marginTop: '32px', marginBottom: '16px' }}>Why x402 Matters</h3>
                     <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {[
@@ -389,33 +351,172 @@ export default function DocsPage() {
             content: (
                 <div>
                     <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
-                        OpenMid provides sponsored x402 facilitation on Base Mainnet with automatic ERC-8004 registration.
+                        AetherSwarm uses <strong>OpenMid</strong> on Base Mainnet to sponsor gas fees for agent interactions, making micropayments truly viable.
                     </p>
+                    <a href="https://openmid.xyz" target="_blank" style={{ color: 'var(--burnt-clay)', fontWeight: 600 }}>Learn more about OpenMid →</a>
+                </div>
+            )
+        },
+        facilitators: {
+            title: 'Facilitators',
+            content: (
+                <div>
+                    <h3 style={{ marginBottom: '16px' }}>Supported Networks</h3>
+                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                        <li style={{ padding: '8px 0', borderBottom: '1px solid var(--soft-grey)' }}><strong>Polygon Amoy</strong> (Testnet Default)</li>
+                        <li style={{ padding: '8px 0', borderBottom: '1px solid var(--soft-grey)' }}><strong>Base Mainnet</strong> (via OpenMid)</li>
+                        <li style={{ padding: '8px 0' }}><strong>Ethereum Sepolia</strong></li>
+                    </ul>
+                </div>
+            )
+        },
+        erc8004: {
+            title: 'ERC-8004 Standard',
+            content: (
+                <div>
+                    <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
+                        The <strong>Trustless Agent Standard</strong>. AetherSwarm uses ERC-8004 to register agents on-chain, storing their reputation, endpoint URLs, and stake requirements in a decentralized registry.
+                    </p>
+                </div>
+            )
+        },
+        installation: {
+            title: 'Installation',
+            content: (
+                <div>
+                    <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
+                        Detailed installation for each component.
+                    </p>
+                    <h4 style={{ marginBottom: '8px' }}>Using the Script (Recommended)</h4>
+                    <code style={{ background: 'var(--limestone)', padding: '4px 8px', borderRadius: '4px' }}>./start-system.sh</code>
+                </div>
+            )
+        },
+        agents: {
+            title: 'Agent Development',
+            content: (
+                <div>
+                    <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
+                        Agents are independent programs that communicate via WebSocket with the Swarm Coordinator.
+                    </p>
+                    <h4 style={{ marginBottom: '8px' }}>Scout (Python)</h4>
+                    <p style={{ fontSize: '14px', color: 'var(--mid-grey)', marginBottom: '16px' }}>Located in <code>agents/scout</code>. Handles <code>_perform_real_search</code>.</p>
 
-                    <div style={{ background: 'var(--olive-drab)', color: 'var(--warm-white)', padding: '20px', marginBottom: '24px' }}>
-                        <h4 style={{ color: 'var(--warm-white)', marginBottom: '12px' }}>✨ Key Benefits</h4>
-                        <ul style={{ listStyle: 'none', padding: 0, fontSize: '14px', lineHeight: 2 }}>
-                            <li>✓ FREE gas fees (OpenMid sponsors all transactions)</li>
-                            <li>✓ Automatic ERC-8004 agent registration</li>
-                            <li>✓ Dual-network (Base Mainnet + Sepolia)</li>
-                            <li>✓ No setup required</li>
-                        </ul>
+                    <h4 style={{ marginBottom: '8px' }}>Verifier (Rust)</h4>
+                    <p style={{ fontSize: '14px', color: 'var(--mid-grey)', marginBottom: '16px' }}>Located in <code>agents/verifier</code>. Compiles to a binary for performance.</p>
+                </div>
+            )
+        },
+        troubleshooting: {
+            title: 'Troubleshooting',
+            content: (
+                <div>
+                    <h3 style={{ marginBottom: '16px' }}>Common Issues</h3>
+
+                    <div style={{ marginBottom: '24px' }}>
+                        <h4 style={{ marginBottom: '4px', color: 'var(--burnt-clay)' }}>Quest Stuck at "Queued"</h4>
+                        <p style={{ fontSize: '14px', color: 'var(--mid-grey)', marginBottom: '8px' }}>Agents are likely disconnected from the coordinator.</p>
+                        <div style={{ background: 'var(--limestone)', padding: '12px', borderRadius: '6px', fontSize: '13px' }}>
+                            <strong>Fix:</strong> Restart everything together.<br />
+                            <code>./stop-system.sh && ./start-system.sh</code>
+                        </div>
                     </div>
 
-                    <h3 style={{ marginTop: '32px', marginBottom: '16px' }}>Environment Variables</h3>
-                    <div style={{ background: 'var(--graphite)', color: 'var(--warm-white)', padding: '20px', fontFamily: 'monospace', fontSize: '12px', overflowX: 'auto' }}>
-                        <div>OPENMID_FACILITATOR_URL=https://facilitator.openmid.xyz</div>
-                        <div>BASE_MAINNET_CHAIN_ID=8453</div>
-                        <div>BASE_SEPOLIA_CHAIN_ID=84532</div>
-                        <div>USDC_BASE_MAINNET=0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</div>
-                        <div>ERC8004_DELEGATION_CONTRACT=0xFdc90fCC6929a2f42a9D714bD10520eEE98bD378</div>
+                    <div style={{ marginBottom: '24px' }}>
+                        <h4 style={{ marginBottom: '4px', color: 'var(--burnt-clay)' }}>IPFS Upload Failed</h4>
+                        <p style={{ fontSize: '14px', color: 'var(--mid-grey)', marginBottom: '8px' }}>Missing or invalid Pinata JWT.</p>
+                        <div style={{ background: 'var(--limestone)', padding: '12px', borderRadius: '6px', fontSize: '13px' }}>
+                            <strong>Fix:</strong> Check <code>PINATA_JWT</code> in your .env file.
+                        </div>
                     </div>
-
-                    <div style={{ marginTop: '24px', padding: '20px', background: 'var(--limestone)', border: '1px solid var(--soft-grey)' }}>
-                        <h4 style={{ marginBottom: '12px' }}>📚 Learn More</h4>
-                        <p style={{ fontSize: '14px', lineHeight: 1.6 }}>
-                            See <code>OPENMID_COMPLETE.md</code> for full integration guide.
-                        </p>
+                </div>
+            )
+        },
+        api: {
+            title: 'API Reference',
+            content: (
+                <div>
+                    <h3 style={{ marginBottom: '16px' }}>Quest Engine API</h3>
+                    <div style={{ display: 'grid', gap: '24px' }}>
+                        {[
+                            { method: 'POST', path: '/quests', desc: 'Create a new quest', payload: '{ objectives: string[], budget: number }' },
+                            { method: 'GET', path: '/quests', desc: 'List user quests', payload: 'None' },
+                            { method: 'GET', path: '/quests/:id', desc: 'Get quest details & results', payload: 'None' },
+                            { method: 'GET', path: '/health', desc: 'Service health check', payload: 'None' },
+                        ].map((ep, i) => (
+                            <div key={i} style={{ padding: '20px', background: 'var(--warm-white)', border: '1px solid var(--soft-grey)', borderRadius: '8px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                    <span style={{
+                                        background: ep.method === 'POST' ? 'var(--burnt-clay)' : 'var(--olive-drab)',
+                                        color: 'white',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '12px',
+                                        fontWeight: 600
+                                    }}>{ep.method}</span>
+                                    <code style={{ fontSize: '14px', fontWeight: 600 }}>{ep.path}</code>
+                                </div>
+                                <p style={{ fontSize: '14px', color: 'var(--mid-grey)', marginBottom: '8px' }}>{ep.desc}</p>
+                                <div style={{ fontSize: '12px', fontFamily: 'monospace', color: 'var(--graphite)', background: 'var(--alabaster)', padding: '8px' }}>
+                                    Payload: {ep.payload}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )
+        },
+        contracts: {
+            title: 'Smart Contracts',
+            content: (
+                <div>
+                    <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
+                        AetherSwarm operates on <strong>Polygon Amoy</strong> (Testnet) and <strong>Base</strong> using the following core contracts.
+                    </p>
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                        {[
+                            { name: 'DiscoveryRegistry', type: 'ERC-8004', desc: 'Stores agent identities, endpoints, and stake. Allows the coordinator to discover capable agents.' },
+                            { name: 'ReputationRegistry', type: 'ERC-721 Extension', desc: 'Tracks agent performance scores. Reviews are tied to on-chain payments to prevent sybil attacks.' },
+                            { name: 'QuestPool', type: 'Paymaster', desc: 'Holds USDC budget for active quests. Programmatically distributes funds to agents upon verification.' },
+                            { name: 'ArtifactNFT', type: 'ERC-721', desc: 'Mints the final knowledge artifact as an NFT, containing the IPFS Merkle Root for data provenance.' },
+                        ].map((c, i) => (
+                            <div key={i} style={{ padding: '16px', background: 'var(--limestone)', borderLeft: '3px solid var(--burnt-clay)' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                                    <strong style={{ color: 'var(--graphite)' }}>{c.name}</strong>
+                                    <span style={{ fontSize: '11px', background: 'var(--soft-grey)', padding: '2px 6px', borderRadius: '10px' }}>{c.type}</span>
+                                </div>
+                                <p style={{ fontSize: '13px', color: 'var(--mid-grey)', margin: 0 }}>{c.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )
+        },
+        config: {
+            title: 'Configuration',
+            content: (
+                <div>
+                    <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
+                        Critical environment variables for <code>.env</code>.
+                    </p>
+                    <div style={{ display: 'grid', gap: '16px' }}>
+                        <div>
+                            <h4 style={{ marginBottom: '8px', fontSize: '14px', color: 'var(--burnt-clay)' }}>Wallets & Keys</h4>
+                            <code style={{ display: 'block', background: 'var(--graphite)', color: 'var(--warm-white)', padding: '16px', borderRadius: '6px', fontSize: '12px', lineHeight: 1.6 }}>
+                                CROSSMINT_API_KEY=...<br />
+                                THIRDWEB_SECRET_KEY=...<br />
+                                AGENT_PRIVATE_KEY=...<br />
+                                PINATA_JWT=...
+                            </code>
+                        </div>
+                        <div>
+                            <h4 style={{ marginBottom: '8px', fontSize: '14px', color: 'var(--burnt-clay)' }}>Services</h4>
+                            <code style={{ display: 'block', background: 'var(--graphite)', color: 'var(--warm-white)', padding: '16px', borderRadius: '6px', fontSize: '12px', lineHeight: 1.6 }}>
+                                RPC_URL=https://rpc.ankr.com/polygon_amoy<br />
+                                REDIS_URL=redis://localhost:6379<br />
+                                TAVILY_API_KEY=tvly-...
+                            </code>
+                        </div>
                     </div>
                 </div>
             )
@@ -458,6 +559,7 @@ export default function DocsPage() {
                     <a href="/agents" className="label" style={{ textDecoration: 'none' }}>Agents</a>
                     <a href="/quests" className="label" style={{ textDecoration: 'none' }}>Quests</a>
                     <a href="/docs" className="label" style={{ textDecoration: 'none', color: 'var(--burnt-clay)' }}>Docs</a>
+                    <ThemeToggle />
                 </nav>
                 {/* Mobile Sections Button */}
                 <button
@@ -480,7 +582,7 @@ export default function DocsPage() {
                 </button>
             </header>
 
-            <div className="container docs-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '48px', padding: '48px 16px', maxWidth: '1400px', margin: '0 auto' }}>
+            <div className="container docs-layout">
                 {/* Sidebar */}
                 <aside className={mobileMenuOpen ? "mobile-menu-open" : ""} style={{ height: 'fit-content' }}>
                     <div style={{ marginBottom: '24px' }}>
@@ -573,7 +675,7 @@ export default function DocsPage() {
 
                     {/* Footer Navigation */}
                     <div style={{ marginTop: '64px', paddingTop: '32px', borderTop: '1px solid var(--soft-grey)', display: 'flex', justifyContent: 'space-between' }}>
-                        <a href="https://github.com/yourusername/aetherswarm" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>
+                        <a href="https://github.com/winsznx/aetherswarm" style={{ textDecoration: 'none', color: 'var(--graphite)' }}>
                             <span className="label">View on GitHub →</span>
                         </a>
                         <a href="/quests" style={{ textDecoration: 'none', color: 'var(--burnt-clay)' }}>
