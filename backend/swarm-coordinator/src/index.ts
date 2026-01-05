@@ -199,12 +199,59 @@ interface QuestState {
 const activeQuests: Map<string, QuestState> = new Map();
 const discoveryClient = new DiscoveryRegistryClient();
 
-// --- WebSocket Server ---
+// --- Combined HTTP + WebSocket Server ---
+// Railway only exposes one port, so we run both HTTP and WebSocket on the same port
+const port = parseInt(process.env.PORT || process.env.WS_PORT || '8080');
 
-const wsPort = parseInt(process.env.WS_PORT || '8080');
-const wss = new WebSocketServer({ port: wsPort });
+// Create HTTP server first
+const server = http.createServer((req, res) => {
+    // CORS headers for frontend
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-console.log(`[Coordinator] WebSocket server running on port ${wsPort}`);
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+    }
+
+    if (req.url === '/health') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            status: 'healthy',
+            connectedAgents: connectedAgents.size,
+            activeQuests: activeQuests.size,
+            agentBreakdown: {
+                scouts: Array.from(connectedAgents.values()).filter(a => a.role === 'scout').length,
+                verifiers: Array.from(connectedAgents.values()).filter(a => a.role === 'verifier').length,
+                synthesizers: Array.from(connectedAgents.values()).filter(a => a.role === 'synthesizer').length
+            }
+        }));
+    } else if (req.url === '/agents') {
+        const agents = Array.from(connectedAgents.values()).map(agent => ({
+            id: agent.agentId,
+            role: agent.role,
+            address: agent.address || 'N/A',
+            status: 'active',
+            capabilities: agent.capabilities || [],
+            reputation: agent.discoveryInfo?.reputationScore || 0,
+            wsEndpoint: agent.discoveryInfo?.wsEndpoint,
+            stakeAmount: agent.discoveryInfo?.stakeAmount ? Number(agent.discoveryInfo.stakeAmount) : 0,
+            registeredAt: agent.discoveryInfo?.registeredAt
+        }));
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ agents }));
+    } else {
+        res.writeHead(404);
+        res.end();
+    }
+});
+
+// Attach WebSocket server to the HTTP server
+const wss = new WebSocketServer({ server });
+
+console.log(`[Coordinator] HTTP + WebSocket server running on port ${port}`);
 
 wss.on('connection', (ws: WebSocket) => {
     let agentId: string | null = null;
@@ -520,56 +567,10 @@ questWorker.on('failed', (job, err) => {
 
 console.log('[Coordinator] Quest worker started, listening for jobs...');
 
-// --- Health Check \u0026 Agent Info Endpoint ---
-
-const healthServer = http.createServer((req, res) => {
-    // CORS headers for frontend
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-        res.writeHead(200);
-        res.end();
-        return;
-    }
-
-    if (req.url === '/health') {
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({
-            status: 'healthy',
-            connectedAgents: connectedAgents.size,
-            activeQuests: activeQuests.size,
-            agentBreakdown: {
-                scouts: Array.from(connectedAgents.values()).filter(a => a.role === 'scout').length,
-                verifiers: Array.from(connectedAgents.values()).filter(a => a.role === 'verifier').length,
-                synthesizers: Array.from(connectedAgents.values()).filter(a => a.role === 'synthesizer').length
-            }
-        }));
-    } else if (req.url === '/agents') {
-        // Return detailed agent information
-        const agents = Array.from(connectedAgents.values()).map(agent => ({
-            id: agent.agentId,
-            role: agent.role,
-            address: agent.address || 'N/A',
-            status: 'active',
-            capabilities: agent.capabilities || [],
-            reputation: agent.discoveryInfo?.reputationScore || 0,
-            wsEndpoint: agent.discoveryInfo?.wsEndpoint,
-            stakeAmount: agent.discoveryInfo?.stakeAmount ? Number(agent.discoveryInfo.stakeAmount) : 0,
-            registeredAt: agent.discoveryInfo?.registeredAt
-        }));
-
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ agents }));
-    } else {
-        res.writeHead(404);
-        res.end();
-    }
-});
-
-const healthPort = parseInt(process.env.HEALTH_PORT || '8081');
-healthServer.listen(healthPort, () => {
-    console.log(`[Coordinator] Health endpoint on http://localhost:${healthPort}/health`);
-    console.log(`[Coordinator] Agents endpoint on http://localhost:${healthPort}/agents`);
+// Start the combined HTTP + WebSocket server
+server.listen(port, () => {
+    console.log(`[Coordinator] Server running on port ${port}`);
+    console.log(`[Coordinator] WebSocket endpoint: ws://localhost:${port}`);
+    console.log(`[Coordinator] Health endpoint: http://localhost:${port}/health`);
+    console.log(`[Coordinator] Agents endpoint: http://localhost:${port}/agents`);
 });
