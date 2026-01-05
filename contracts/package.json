@@ -1,0 +1,19 @@
+{
+    "name": "@aetherswarm/contracts",
+    "version": "1.0.0",
+    "description": "ERC-8004 Agent Identity and Quest Logging Smart Contracts",
+    "scripts": {
+        "build": "forge build",
+        "test": "forge test",
+        "deploy:amoy": "forge script script/Deploy.s.sol:DeployContracts --rpc-url $POLYGON_AMOY_RPC_URL --broadcast --verify -vvvv",
+        "deploy:base": "forge script script/Deploy.s.sol:DeployContracts --rpc-url $BASE_SEPOLIA_RPC_URL --broadcast --verify -vvvv",
+        "install": "forge install",
+        "clean": "forge clean"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^5.0.0"
+    },
+    "devDependencies": {
+        "forge-std": "^1.7.0"
+    }
+}
