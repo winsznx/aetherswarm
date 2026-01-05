@@ -1,0 +1,687 @@
+"""
+AetherSwarm Scout Agent - OpenMid x402 Integration
+Implements multi-facilitator x402 with:
+- OpenMid (Base Mainnet + Sepolia) - Sponsored gas + ERC-8004
+- Thirdweb Nexus - Multi-chain fallback
+- Automatic facilitator selection and retry
+"""
+
+import asyncio
+import json
+import os
+import hashlib
+import time
+from typing import Optional, Dict, Any, List
+from dataclasses import dataclass
+from eth_account import Account
+from eth_account.messages import encode_typed_data
+import aiohttp
+import websockets
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Import OpenMid multi-facilitator client
+from multi_facilitator_x402 import MultiFacilitatorX402Client, FacilitatorType
+
+class ScoutAgent:
+    """
+    AetherSwarm Scout Agent with OpenMid x402 integration
+    
+    Features:
+    - Multi-facilitator support (OpenMid, Thirdweb, Corbits)
+    - Automatic ERC-8004 registration on first payment
+    - Sponsored transactions on Base (free gas!)
+    - Budget-based tier system
+    - Real-time data fetching
+    """
+    
+    # Budget tiers for data sourcing
+    BUDGET_TIERS = {
+        "BASIC": {"min": 0, "max": 1, "max_sources": 1},
+        "STANDARD": {"min": 1, "max": 5, "max_sources": 2},
+        "PREMIUM": {"min": 5, "max": 10, "max_sources": 3},
+        "ENTERPRISE": {"min": 10, "max": float('inf'), "max_sources": 4}
+    }
+    
+    def __init__(self):
+        # Agent identity
+        self.agent_id = os.getenv("AGENT_ID", "scout-001")
+        self.coordinator_url = os.getenv("COORDINATOR_WS_URL", "ws://localhost:8080")
+        
+        # Wallet configuration
+        private_key = os.getenv("AGENT_PRIVATE_KEY")
+        if not private_key:
+            raise ValueError("AGENT_PRIVATE_KEY not set in environment")
+        
+        self.account = Account.from_key(private_key)
+        self.address = self.account.address
+        
+        # Initialize OpenMid x402 client
+        self.x402_client = MultiFacilitatorX402Client(
+            agent_private_key=private_key,
+            preferred_chain=8453,  # Base Mainnet
+            facilitator_priority=[
+                FacilitatorType.OPENMID,  # Try OpenMid first (free gas!)
+                FacilitatorType.THIRDWEB,  # Fallback to Thirdweb
+            ]
+        )
+        
+        print(f"[Scout] Initialized with OpenMid x402 client")
+        print(f"[Scout] Agent address: {self.address}")
+        print(f"[Scout] Facilitators: OpenMid (Base) → Thirdweb (Multi-chain)")
+        
+        # Free data sources (no payment required)
+        self.free_sources = {
+            "coingecko": "https://api.coingecko.com/api/v3",
+            "wikipedia": "https://en.wikipedia.org/api/rest_v1",
+            "newsdata": "https://newsdata.io/api/1"
+        }
+        
+        # x402 paywalled sources (premium data)
+        self.premium_sources = {
+            # Add x402-enabled APIs here
+            # Example: "premium_crypto": "https://api.premium-crypto.com/v1"
+        }
+        
+        self.ws = None
+    
+    def get_budget_tier(self, budget: float) -> Dict[str, Any]:
+        """
+        Determine budget tier and max data sources
+        
+        Args:
+            budget: Quest budget in USDC
+            
+        Returns:
+            Dict with tier name and max_sources
+        """
+        for tier_name, tier_config in self.BUDGET_TIERS.items():
+            if tier_config["min"] <= budget < tier_config["max"]:
+                return {
+                    "tier": tier_name,
+                    "max_sources": tier_config["max_sources"],
+                    "budget": budget
+                }
+        
+        # Default to ENTERPRISE for very high budgets
+        return {
+            "tier": "ENTERPRISE",
+            "max_sources": self.BUDGET_TIERS["ENTERPRISE"]["max_sources"],
+            "budget": budget
+        }
+    
+    async def fetch_with_payment(
+        self,
+        url: str,
+        max_amount: float = 0.10
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fetch data from x402-gated API using OpenMid
+        
+        Args:
+            url: API endpoint
+            max_amount: Maximum USDC willing to pay
+            
+        Returns:
+            API response data or None if payment fails
+        """
+        try:
+            print(f"[Scout] Fetching premium data from {url}")
+            
+            # Use OpenMid x402 client (handles payment + ERC-8004 registration)
+            response = self.x402_client.fetch_with_payment(
+                url=url,
+                max_amount=max_amount
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"[Scout] Premium API returned {response.status_code}")
+                return None
+                
+        except Exception as e:
+            print(f"[Scout] x402 payment failed: {e}")
+            return None
+    
+    async def fetch_free_data(
+        self,
+        source: str,
+        endpoint: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fetch data from free sources (no payment)
+        
+        Args:
+            source: Source name (e.g., "coingecko")
+            endpoint: API endpoint path
+            
+        Returns:
+            API response data or None
+        """
+        if source not in self.free_sources:
+            print(f"[Scout] Unknown free source: {source}")
+            return None
+        
+        base_url = self.free_sources[source]
+        url = f"{base_url}/{endpoint}"
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=10) as response:
+                    if response.status == 200:
+                        return await response.json()
+                    else:
+                        print(f"[Scout] {source} returned {response.status}")
+                        return None
+        except Exception as e:
+            print(f"[Scout] Error fetching from {source}: {e}")
+            return None
+        """
+        self.account = Account.from_key(private_key)
+        self.address = self.account.address
+        self.rpc_url = rpc_url or os.getenv("RPC_URL", "https://polygon-mainnet.g.alchemy.com/v2/demo")
+        
+    def parse_402_response(self, response_headers: Dict, response_body: Dict) -> PaymentRequirements:
+        """
+        Parse x402 payment requirements from 402 response
+        
+        The 402 response contains:
+        - X-Payment-Requirements header or body with payment terms
+        """
+        # Try header first (standard x402)
+        requirements_json = response_headers.get('X-Payment-Requirements')
+        
+        if requirements_json:
+            req = json.loads(requirements_json)
+        else:
+            # Fall back to body (Faremeter style)
+            req = response_body.get('paymentRequirements', response_body)
+        
+        return PaymentRequirements(
+            pay_to=req.get('payTo', req.get('recipient')),
+            amount=req.get('amount', req.get('maxAmountRequired')),
+            asset=req.get('asset', 'USDC'),
+            network=req.get('network', 'polygon'),
+            facilitator_url=req.get('facilitatorUrl', req.get('facilitator')),
+            nonce=req.get('nonce', str(int(asyncio.get_event_loop().time() * 1000))),
+            expiry=req.get('expiry', int(asyncio.get_event_loop().time()) + 3600),
+            resource_url=req.get('resourceUrl', ''),
+            method=req.get('method', 'GET')
+        )
+
+    def sign_x402_payment(self, requirements: PaymentRequirements) -> str:
+        """
+        Sign x402 payment using EIP-712 typed data
+        
+        This creates a cryptographic proof that the agent authorizes the payment
+        """
+        # EIP-712 Domain (x402 standard)
+        domain = {
+            "name": "x402",
+            "version": "1",
+            "chainId": self._get_chain_id(requirements.network),
+            "verifyingContract": requirements.facilitator_url.split('/')[-1] if '0x' in requirements.facilitator_url else "0x0000000000000000000000000000000000000000"
+        }
+        
+        # x402 Payment message type
+        types = {
+            "Payment": [
+                {"name": "payTo", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "asset", "type": "address"},
+                {"name": "nonce", "type": "uint256"},
+                {"name": "expiry", "type": "uint256"},
+                {"name": "resourceUrl", "type": "string"},
+            ]
+        }
+        
+        # Payment message data
+        message = {
+            "payTo": requirements.pay_to,
+            "amount": int(requirements.amount),
+            "asset": self._get_asset_address(requirements.asset, requirements.network),
+            "nonce": int(requirements.nonce),
+            "expiry": requirements.expiry,
+            "resourceUrl": requirements.resource_url
+        }
+        
+        # Sign using EIP-712
+        typed_data = {
+            "types": types,
+            "primaryType": "Payment",
+            "domain": domain,
+            "message": message
+        }
+        
+        encoded = encode_typed_data(full_message=typed_data)
+        signed = self.account.sign_message(encoded)
+        
+        # Create x402 payment header value
+        payment_header = {
+            "signature": signed.signature.hex(),
+            "payer": self.address,
+            "payTo": requirements.pay_to,
+            "amount": requirements.amount,
+            "asset": requirements.asset,
+            "network": requirements.network,
+            "nonce": requirements.nonce,
+            "expiry": requirements.expiry
+        }
+        
+        return json.dumps(payment_header)
+
+    def _get_chain_id(self, network: str) -> int:
+        """Get chain ID for network"""
+        chains = {
+            "polygon": 137,
+            "base": 8453,
+            "ethereum": 1,
+            "arbitrum": 42161,
+            "abstract": 2741,
+            "abstract-testnet": 11124
+        }
+        return chains.get(network.lower(), 137)
+    
+    def _get_asset_address(self, asset: str, network: str) -> str:
+        """Get USDC contract address for network"""
+        usdc_addresses = {
+            "polygon": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
+            "base": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+            "ethereum": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
+            "arbitrum": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+            "abstract": "0x84A71ccD554Cc1b02749b35d22F684CC8ec987e1"  # Example
+        }
+        if asset.upper() == "USDC":
+            return usdc_addresses.get(network.lower(), usdc_addresses["polygon"])
+        return asset  # Assume it's already an address
+
+    async def fetch_with_payment(
+        self, 
+        url: str, 
+        method: str = "GET",
+        headers: Dict = None,
+        body: Any = None,
+        max_retries: int = 3
+    ) -> aiohttp.ClientResponse:
+        """
+        Make a request with automatic x402 payment handling
+        
+        1. Make initial request
+        2. If 402, parse requirements and sign
+        3. Retry with X-PAYMENT header
+        """
+        headers = headers or {}
+        
+        async with aiohttp.ClientSession() as session:
+            for attempt in range(max_retries):
+                async with session.request(
+                    method=method,
+                    url=url,
+                    headers=headers,
+                    json=body if body else None
+                ) as response:
+                    
+                    if response.status == 402:
+                        # Parse payment requirements
+                        response_body = await response.json()
+                        requirements = self.parse_402_response(
+                            dict(response.headers),
+                            response_body
+                        )
+                        requirements.resource_url = url
+                        requirements.method = method
+                        
+                        print(f"[x402] Payment required: {requirements.amount} {requirements.asset}")
+                        
+                        # Sign payment
+                        payment_header = self.sign_x402_payment(requirements)
+                        
+                        # Retry with payment
+                        headers['X-PAYMENT'] = payment_header
+                        
+                        print(f"[x402] Signed payment, retrying...")
+                        continue
+                    
+                    elif response.status == 200:
+                        print(f"[x402] Request successful")
+                        return response
+                    
+                    else:
+                        print(f"[x402] Unexpected status: {response.status}")
+                        return response
+            
+            raise Exception(f"Max retries exceeded for {url}")
+
+
+class ScoutAgent:
+    """
+    AetherSwarm Scout Agent
+    
+    Responsibilities:
+    - Connect to Swarm Coordinator via WebSocket
+    - Receive query_quest tasks
+    - Fetch data from paywalled APIs using x402
+    - Return results with payment proofs
+    """
+    
+    def __init__(self):
+        self.coordinator_url = os.getenv("COORDINATOR_WS_URL", "ws://localhost:8080")
+        self.private_key = os.getenv("AGENT_PRIVATE_KEY")
+        self.agent_id = os.getenv("AGENT_ID", "scout-001")
+        
+        if not self.private_key:
+            raise ValueError("AGENT_PRIVATE_KEY environment variable required")
+        
+        self.x402_client = X402Client(self.private_key)
+        self.ws = None
+        
+    async def connect(self):
+        """Connect to Swarm Coordinator and register as Scout"""
+        print(f"[Scout] Connecting to coordinator: {self.coordinator_url}")
+        
+        self.ws = await websockets.connect(self.coordinator_url)
+        
+        # Register with coordinator
+        registration = {
+            "type": "register",
+            "role": "scout",
+            "agentId": self.agent_id,
+            "address": self.x402_client.address,
+            "capabilities": ["web_scraping", "api_query", "document_fetch"]
+        }
+        
+        await self.ws.send(json.dumps(registration))
+        print(f"[Scout] Registered as {self.agent_id} with address {self.x402_client.address}")
+        
+    async def handle_task(self, task: Dict):
+        """
+        Handle a query_quest task from coordinator
+        
+        Task structure:
+        {
+            "type": "query_quest",
+            "questId": "...",
+            "objective": "Research topic X",
+            "sources": ["https://api.example.com/data"],
+            "budget": 100000 (in USDC base units, 6 decimals)
+        }
+        """
+        task_type = task.get("type")
+        quest_id = task.get("questId")
+        
+        print(f"[Scout] Received task: {task_type} for quest {quest_id}")
+        
+        if task_type == "query_quest":
+            results = []
+            payment_proofs = []
+            
+            sources = task.get("sources", [])
+            objective = task.get("objective", "")
+            budget = float(task.get("budget", 0))
+            
+            # Handle budget units (frontend sends USDC, e.g. "20", not base units)
+            # If budget is small (< 1 million), assume it's USDC. If large, assume base units (6 decimals)
+            if budget < 1_000_000:
+                budget_usdc = budget
+            else:
+                budget_usdc = budget / 1_000_000
+            
+            # Budget-based tier system
+            # Tier 1: $0-1 = 1 source (basic)
+            # Tier 2: $1-5 = 2 sources (standard)  
+            # Tier 3: $5-10 = 3 sources (premium)
+            # Tier 4: $10+ = 4+ sources (enterprise)
+            if budget_usdc >= 10:
+                max_sources = 4
+                tier = "ENTERPRISE"
+            elif budget_usdc >= 5:
+                max_sources = 3
+                tier = "PREMIUM"
+            elif budget_usdc >= 1:
+                max_sources = 2
+                tier = "STANDARD"
+            else:
+                max_sources = 1
+                tier = "BASIC"
+            
+            print(f"[Scout] Processing objective: {objective}")
+            print(f"[Scout] Budget: ${budget_usdc:.2f} USDC | Tier: {tier} | Max sources: {max_sources}")
+            
+            # Intelligent data fetching based on objective keywords
+            async with aiohttp.ClientSession() as session:
+                # Determine what type of data to fetch based on objective
+                objective_lower = objective.lower()
+                
+                # Crypto/blockchain related queries
+                if any(keyword in objective_lower for keyword in ['crypto', 'bitcoin', 'ethereum', 'blockchain', 'defi', 'nft', 'token', 'coin', 'price']):
+                    try:
+                        # Use CoinGecko API (free, no auth needed)
+                        coin_id = 'bitcoin'
+                        if 'ethereum' in objective_lower or 'eth' in objective_lower:
+                            coin_id = 'ethereum'
+                        elif 'solana' in objective_lower:
+                            coin_id = 'solana'
+                        elif 'polygon' in objective_lower or 'matic' in objective_lower:
+                            coin_id = 'matic-network'
+                        
+                        async with session.get(
+                            f'https://api.coingecko.com/api/v3/coins/{coin_id}?localization=false&tickers=false&community_data=false&developer_data=false'
+                        ) as resp:
+                            if resp.status == 200:
+                                data = await resp.json()
+                                result = {
+                                    "source": "CoinGecko API",
+                                    "type": "crypto_data",
+                                    "data": {
+                                        "name": data.get('name'),
+                                        "symbol": data.get('symbol', '').upper(),
+                                        "current_price_usd": data.get('market_data', {}).get('current_price', {}).get('usd'),
+                                        "market_cap_usd": data.get('market_data', {}).get('market_cap', {}).get('usd'),
+                                        "price_change_24h": data.get('market_data', {}).get('price_change_percentage_24h'),
+                                        "description": data.get('description', {}).get('en', '')[:500] if data.get('description', {}).get('en') else None
+                                    },
+                                    "timestamp": int(asyncio.get_event_loop().time())
+                                }
+                                result["hash"] = hashlib.sha256(json.dumps(result["data"]).encode()).hexdigest()
+                                results.append(result)
+                                print(f"[Scout] Fetched crypto data for {coin_id}")
+                    except Exception as e:
+                        print(f"[Scout] CoinGecko error: {e}")
+                
+                # News/research related queries
+                if any(keyword in objective_lower for keyword in ['news', 'research', 'latest', 'recent', 'update', 'article']):
+                    try:
+                        # Use NewsData.io free tier
+                        async with session.get(
+                            f'https://newsdata.io/api/1/news?apikey=pub_633486c5d5f00fed0c1fae27da94ccd5e8dfc&q={objective.replace(" ", "+")[:50]}&language=en'
+                        ) as resp:
+                            if resp.status == 200:
+                                news_data = await resp.json()
+                                articles = news_data.get('results', [])[:3]
+                                if articles:
+                                    result = {
+                                        "source": "NewsData.io API",
+                                        "type": "news_data",
+                                        "data": {
+                                            "articles": [
+                                                {
+                                                    "title": a.get('title'),
+                                                    "description": a.get('description', '')[:300] if a.get('description') else None,
+                                                    "source": a.get('source_id'),
+                                                    "published": a.get('pubDate'),
+                                                    "link": a.get('link')
+                                                }
+                                                for a in articles
+                                            ]
+                                        },
+                                        "timestamp": int(asyncio.get_event_loop().time())
+                                    }
+                                    result["hash"] = hashlib.sha256(json.dumps(result["data"]).encode()).hexdigest()
+                                    results.append(result)
+                                    print(f"[Scout] Fetched {len(articles)} news articles")
+                    except Exception as e:
+                        print(f"[Scout] NewsData error: {e}")
+                
+                # General knowledge queries - use Wikipedia
+                if any(keyword in objective_lower for keyword in ['what is', 'explain', 'information about', 'research', 'find', 'learn']):
+                    try:
+                        # Extract search term from objective
+                        search_term = objective[:50].replace('research', '').replace('find', '').replace('information about', '').replace('what is', '').strip()
+                        async with session.get(
+                            f'https://en.wikipedia.org/api/rest_v1/page/summary/{search_term.replace(" ", "_")}'
+                        ) as resp:
+                            if resp.status == 200:
+                                wiki_data = await resp.json()
+                                result = {
+                                    "source": "Wikipedia API",
+                                    "type": "knowledge_data",
+                                    "data": {
+                                        "title": wiki_data.get('title'),
+                                        "extract": wiki_data.get('extract'),
+                                        "description": wiki_data.get('description'),
+                                        "url": wiki_data.get('content_urls', {}).get('desktop', {}).get('page')
+                                    },
+                                    "timestamp": int(asyncio.get_event_loop().time())
+                                }
+                                result["hash"] = hashlib.sha256(json.dumps(result["data"]).encode()).hexdigest()
+                                results.append(result)
+                                print(f"[Scout] Fetched Wikipedia data for: {search_term}")
+                    except Exception as e:
+                        print(f"[Scout] Wikipedia error: {e}")
+                
+                # Also try any provided x402 sources
+                for source_url in sources:
+                    try:
+                        response = await self.x402_client.fetch_with_payment(source_url)
+                        data = await response.json() if 'application/json' in (response.content_type or '') else await response.text()
+                        
+                        data_hash = hashlib.sha256(json.dumps(data).encode()).hexdigest()
+                        
+                        results.append({
+                            "source": source_url,
+                            "type": "x402_api",
+                            "data": data,
+                            "hash": data_hash,
+                            "timestamp": int(asyncio.get_event_loop().time())
+                        })
+                        
+                        if 'X-Payment-Receipt' in response.headers:
+                            payment_proofs.append({
+                                "source": source_url,
+                                "paymentHeader": response.headers.get('X-Payment-Receipt')
+                            })
+                            
+                    except Exception as e:
+                        print(f"[Scout] Error fetching {source_url}: {e}")
+                
+                # Limit results based on budget tier
+                if len(results) > max_sources:
+                    print(f"[Scout] Limiting results from {len(results)} to {max_sources} based on {tier} tier")
+                    results = results[:max_sources]
+                
+                # If no results, provide a fallback summary
+                if not results:
+                    results.append({
+                        "source": "Scout Agent",
+                        "type": "fallback",
+                        "data": {
+                            "summary": f"Searched for information related to: {objective}. Limited sources available at {tier} tier.",
+                            "objective_received": objective,
+                            "tier": tier,
+                            "budget_usdc": budget_usdc
+                        },
+                        "hash": hashlib.sha256(objective.encode()).hexdigest(),
+                        "timestamp": int(asyncio.get_event_loop().time())
+                    })
+            
+            # Generate a summary from results
+            summary = self._generate_summary(objective, results)
+            
+            # Calculate cost breakdown for transparency
+            cost_breakdown = {
+                "tier": tier,
+                "budget_usdc": budget_usdc,
+                "sources_queried": len(results),
+                "max_sources_allowed": max_sources
+            }
+            
+            # Send results back to coordinator
+            response = {
+                "type": "task_result",
+                "questId": quest_id,
+                "agentId": self.agent_id,
+                "status": "complete",
+                "results": results,
+                "summary": summary,
+                "paymentProofs": payment_proofs,
+                "dataHashes": [r.get("hash") for r in results if r.get("hash")],
+                "costBreakdown": cost_breakdown
+            }
+            
+            await self.ws.send(json.dumps(response))
+            print(f"[Scout] Sent results for quest {quest_id}")
+    
+    def _generate_summary(self, objective: str, results: list) -> str:
+        """Generate a human-readable summary from results"""
+        parts = [f"Results for: {objective}\n"]
+        
+        for r in results:
+            if r.get("type") == "crypto_data" and r.get("data"):
+                d = r["data"]
+                parts.append(f"\n📈 {d.get('name', 'Unknown')} ({d.get('symbol', '?')}):")
+                if d.get('current_price_usd'):
+                    parts.append(f"  • Price: ${d['current_price_usd']:,.2f}")
+                if d.get('price_change_24h'):
+                    change = d['price_change_24h']
+                    emoji = "🟢" if change > 0 else "🔴"
+                    parts.append(f"  • 24h Change: {emoji} {change:+.2f}%")
+                if d.get('market_cap_usd'):
+                    parts.append(f"  • Market Cap: ${d['market_cap_usd']:,.0f}")
+                if d.get('description'):
+                    parts.append(f"  • {d['description'][:200]}...")
+                    
+            elif r.get("type") == "news_data" and r.get("data", {}).get("articles"):
+                parts.append("\n📰 Latest News:")
+                for i, article in enumerate(r["data"]["articles"][:3], 1):
+                    parts.append(f"\n  {i}. {article.get('title', 'No title')}")
+                    if article.get('description'):
+                        parts.append(f"     {article['description'][:150]}...")
+                    if article.get('link'):
+                        parts.append(f"     🔗 {article['link']}")
+                        
+            elif r.get("type") == "knowledge_data" and r.get("data"):
+                d = r["data"]
+                parts.append(f"\n📚 {d.get('title', 'Information')}:")
+                if d.get('extract'):
+                    parts.append(f"  {d['extract'][:400]}...")
+                if d.get('url'):
+                    parts.append(f"  🔗 {d['url']}")
+                    
+        return "\n".join(parts)
+            
+    async def run(self):
+        """Main agent loop"""
+        await self.connect()
+        
+        print(f"[Scout] Listening for tasks...")
+        
+        async for message in self.ws:
+            try:
+                task = json.loads(message)
+                await self.handle_task(task)
+            except json.JSONDecodeError:
+                print(f"[Scout] Invalid JSON received: {message}")
+            except Exception as e:
+                print(f"[Scout] Error handling task: {e}")
+
+
+async def main():
+    agent = ScoutAgent()
+    await agent.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
