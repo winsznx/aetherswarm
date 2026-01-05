@@ -1,10 +1,5 @@
 [phases.setup]
-nixPkgs = ["rustc", "cargo", "openssl", "pkg-config", "gcc", "cmake"]
-aptPkgs = ["libssl-dev", "pkg-config"]
-
-[variables]
-PKG_CONFIG_PATH = "/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
-OPENSSL_DIR = "/usr"
+nixPkgs = ["rustc", "cargo", "gcc", "cmake", "pkg-config"]
 
 [phases.build]
 cmds = ["rm -f Cargo.lock", "cargo build --release"]
