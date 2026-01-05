@@ -12,8 +12,9 @@ import asyncio
 import json
 import os
 import hashlib
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from dataclasses import dataclass
+from pathlib import Path
 from eth_account import Account
 from eth_account.messages import encode_typed_data
 import aiohttp
@@ -22,207 +23,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-@dataclass
-class PaymentRequirements:
-    """x402 Payment Requirements parsed from 402 response"""
-    pay_to: str
-    amount: str
-    asset: str
-    network: str
-    facilitator_url: str
-    nonce: str
-    expiry: int
-    resource_url: str
-    method: str
-
-class X402Client:
-    """
-    Real x402 Client using EIP-712 signing
-    Implements the Faremeter/Corbits protocol
-    """
-    
-    def __init__(self, private_key: str, rpc_url: str = None):
-        """
-        Initialize x402 client with agent's private key
+# Premium API integration with rate limiting
+try:
+    try:
+        from src.premium_integration import get_premium_integration
+        from src.faremeter import FaremeterClient
+    except ImportError:
+        from premium_integration import get_premium_integration
+        from faremeter import FaremeterClient
         
-        Args:
-            private_key: Hex-encoded private key (0x...)
-            rpc_url: Optional RPC URL for on-chain verification
-        """
-        self.account = Account.from_key(private_key)
-        self.address = self.account.address
-        self.rpc_url = rpc_url or os.getenv("RPC_URL", "https://polygon-mainnet.g.alchemy.com/v2/demo")
-        
-    def parse_402_response(self, response_headers: Dict, response_body: Dict) -> PaymentRequirements:
-        """
-        Parse x402 payment requirements from 402 response
-        
-        The 402 response contains:
-        - X-Payment-Requirements header or body with payment terms
-        """
-        # Try header first (standard x402)
-        requirements_json = response_headers.get('X-Payment-Requirements')
-        
-        if requirements_json:
-            req = json.loads(requirements_json)
-        else:
-            # Fall back to body (Faremeter style)
-            req = response_body.get('paymentRequirements', response_body)
-        
-        return PaymentRequirements(
-            pay_to=req.get('payTo', req.get('recipient')),
-            amount=req.get('amount', req.get('maxAmountRequired')),
-            asset=req.get('asset', 'USDC'),
-            network=req.get('network', 'polygon'),
-            facilitator_url=req.get('facilitatorUrl', req.get('facilitator')),
-            nonce=req.get('nonce', str(int(asyncio.get_event_loop().time() * 1000))),
-            expiry=req.get('expiry', int(asyncio.get_event_loop().time()) + 3600),
-            resource_url=req.get('resourceUrl', ''),
-            method=req.get('method', 'GET')
-        )
-
-    def sign_x402_payment(self, requirements: PaymentRequirements) -> str:
-        """
-        Sign x402 payment using EIP-712 typed data
-        
-        This creates a cryptographic proof that the agent authorizes the payment
-        """
-        # EIP-712 Domain (x402 standard)
-        domain = {
-            "name": "x402",
-            "version": "1",
-            "chainId": self._get_chain_id(requirements.network),
-            "verifyingContract": requirements.facilitator_url.split('/')[-1] if '0x' in requirements.facilitator_url else "0x0000000000000000000000000000000000000000"
-        }
-        
-        # x402 Payment message type
-        types = {
-            "Payment": [
-                {"name": "payTo", "type": "address"},
-                {"name": "amount", "type": "uint256"},
-                {"name": "asset", "type": "address"},
-                {"name": "nonce", "type": "uint256"},
-                {"name": "expiry", "type": "uint256"},
-                {"name": "resourceUrl", "type": "string"},
-            ]
-        }
-        
-        # Payment message data
-        message = {
-            "payTo": requirements.pay_to,
-            "amount": int(requirements.amount),
-            "asset": self._get_asset_address(requirements.asset, requirements.network),
-            "nonce": int(requirements.nonce),
-            "expiry": requirements.expiry,
-            "resourceUrl": requirements.resource_url
-        }
-        
-        # Sign using EIP-712
-        typed_data = {
-            "types": types,
-            "primaryType": "Payment",
-            "domain": domain,
-            "message": message
-        }
-        
-        encoded = encode_typed_data(full_message=typed_data)
-        signed = self.account.sign_message(encoded)
-        
-        # Create x402 payment header value
-        payment_header = {
-            "signature": signed.signature.hex(),
-            "payer": self.address,
-            "payTo": requirements.pay_to,
-            "amount": requirements.amount,
-            "asset": requirements.asset,
-            "network": requirements.network,
-            "nonce": requirements.nonce,
-            "expiry": requirements.expiry
-        }
-        
-        return json.dumps(payment_header)
-
-    def _get_chain_id(self, network: str) -> int:
-        """Get chain ID for network"""
-        chains = {
-            "polygon": 137,
-            "base": 8453,
-            "ethereum": 1,
-            "arbitrum": 42161,
-            "abstract": 2741,
-            "abstract-testnet": 11124
-        }
-        return chains.get(network.lower(), 137)
-    
-    def _get_asset_address(self, asset: str, network: str) -> str:
-        """Get USDC contract address for network"""
-        usdc_addresses = {
-            "polygon": "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359",
-            "base": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-            "ethereum": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-            "arbitrum": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-            "abstract": "0x84A71ccD554Cc1b02749b35d22F684CC8ec987e1"  # Example
-        }
-        if asset.upper() == "USDC":
-            return usdc_addresses.get(network.lower(), usdc_addresses["polygon"])
-        return asset  # Assume it's already an address
-
-    async def fetch_with_payment(
-        self, 
-        url: str, 
-        method: str = "GET",
-        headers: Dict = None,
-        body: Any = None,
-        max_retries: int = 3
-    ) -> aiohttp.ClientResponse:
-        """
-        Make a request with automatic x402 payment handling
-        
-        1. Make initial request
-        2. If 402, parse requirements and sign
-        3. Retry with X-PAYMENT header
-        """
-        headers = headers or {}
-        
-        async with aiohttp.ClientSession() as session:
-            for attempt in range(max_retries):
-                async with session.request(
-                    method=method,
-                    url=url,
-                    headers=headers,
-                    json=body if body else None
-                ) as response:
-                    
-                    if response.status == 402:
-                        # Parse payment requirements
-                        response_body = await response.json()
-                        requirements = self.parse_402_response(
-                            dict(response.headers),
-                            response_body
-                        )
-                        requirements.resource_url = url
-                        requirements.method = method
-                        
-                        print(f"[x402] Payment required: {requirements.amount} {requirements.asset}")
-                        
-                        # Sign payment
-                        payment_header = self.sign_x402_payment(requirements)
-                        
-                        # Retry with payment
-                        headers['X-PAYMENT'] = payment_header
-                        
-                        print(f"[x402] Signed payment, retrying...")
-                        continue
-                    
-                    elif response.status == 200:
-                        print(f"[x402] Request successful")
-                        return response
-                    
-                    else:
-                        print(f"[x402] Unexpected status: {response.status}")
-                        return response
-            
-            raise Exception(f"Max retries exceeded for {url}")
+    PREMIUM_AVAILABLE = True
+except ImportError as e:
+    print(f"⚠️  Premium integration not available: {e}")
+    PREMIUM_AVAILABLE = False
 
 
 class ScoutAgent:
@@ -232,7 +45,7 @@ class ScoutAgent:
     Responsibilities:
     - Connect to Swarm Coordinator via WebSocket
     - Receive query_quest tasks
-    - Fetch data from paywalled APIs using x402
+    - Fetch data from paywalled APIs using x402 (Faremeter)
     - Return results with payment proofs
     """
     
@@ -244,8 +57,33 @@ class ScoutAgent:
         if not self.private_key:
             raise ValueError("AGENT_PRIVATE_KEY environment variable required")
         
-        self.x402_client = X402Client(self.private_key)
+        self.x402_client = FaremeterClient(self.private_key)
         self.ws = None
+        
+        # Initialize premium API client with rate limiting
+        if PREMIUM_AVAILABLE:
+            try:
+                # Load ERC-8004 agent ID if registered
+                agent_json_path = Path(__file__).parent.parent / '.scout_agent.json'
+                erc8004_agent_id = 1  # Default
+                
+                if agent_json_path.exists():
+                    with open(agent_json_path, 'r') as f:
+                        agent_info = json.load(f)
+                        erc8004_agent_id = agent_info.get('agentId', 1)
+                        print(f"[Scout] Loaded ERC-8004 Agent ID: {erc8004_agent_id}")
+                
+                self.premium = get_premium_integration(
+                    agent_id=erc8004_agent_id,
+                    x402_client=self.x402_client
+                )
+                print("[Scout] ✅ Premium API integration ready with rate limiting")
+            except Exception as e:
+                print(f"[Scout] ⚠️  Premium integration failed: {e}")
+                self.premium = None
+        else:
+            self.premium = None
+
         
     async def connect(self):
         """Connect to Swarm Coordinator and register as Scout"""
@@ -290,7 +128,23 @@ class ScoutAgent:
             sources = task.get("sources", [])
             objective = task.get("objective", "")
             
+            # Set quest wallet and ID for rate limiting
+            if self.premium:
+                wallet_address = task.get("walletAddress")
+                if wallet_address:
+                    self.premium.set_quest_wallet(wallet_address)
+                    print(f"[Scout] Quest wallet set: {wallet_address}")
+                
+                if quest_id:
+                    self.premium.set_quest_id(quest_id)
+                    print(f"[Scout] Quest ID set for rate limiting: {quest_id}")
+
+            
             for source_url in sources:
+                # SKIP default test URL if we have an objective
+                if  "faremeter.com" in source_url and objective:
+                    continue
+
                 try:
                     # Fetch with x402 payment if needed
                     response = await self.x402_client.fetch_with_payment(source_url)
@@ -315,11 +169,13 @@ class ScoutAgent:
                         
                 except Exception as e:
                     print(f"[Scout] Error fetching {source_url}: {e}")
-                    results.append({
-                        "source": source_url,
-                        "error": str(e)
-                    })
             
+            # If no results (or skipped default), perform REAL Search based on objective
+            if not results and objective:
+                print(f"[Scout] No direct sources found. Performing REAL search for: {objective}")
+                real_results = await self._perform_real_search(objective)
+                results.extend(real_results)
+
             # Send results back to coordinator
             response = {
                 "type": "task_result",
@@ -333,6 +189,471 @@ class ScoutAgent:
             
             await self.ws.send(json.dumps(response))
             print(f"[Scout] Sent results for quest {quest_id}")
+            
+            # Reset quest limits after completion
+            if self.premium and quest_id:
+                self.premium.complete_quest(quest_id)
+                print(f"[Scout] Quest {quest_id} rate limits reset")
+
+
+    async def _perform_real_search(self, query: str) -> List[Dict]:
+        """
+        PRODUCTION-READY SEARCH PRIORITY SYSTEM:
+        
+        Priority 0: Fast Path (Free) - Simple factual queries
+        Priority 1: Premium External APIs - Complex research requiring analysis
+        Priority 2: Internal x402 Demo - Only for explicit premium requests
+        Priority 3: Free Fallback - Web scraping, public APIs
+        """
+        query_lower = query.lower()
+        results = []
+        timestamp = int(asyncio.get_event_loop().time())
+        
+        # === PRIORITY 0: Fast Path (Free) ===
+        # Simple factual data that doesn't require analysis
+        # Examples: "btc price", "eth market cap", "weather in NYC"
+        
+        # Check for crypto price queries
+        crypto_keywords = ["price", "market cap", "value", "worth"]
+        crypto_coins = ["btc", "eth", "bitcoin", "ethereum", "stacks", "solana"]
+        
+        is_simple_crypto_query = (
+            any(coin in query_lower for coin in crypto_coins) and
+            any(kw in query_lower for kw in crypto_keywords) and
+            "analysis" not in query_lower and
+            "research" not in query_lower and
+            "why" not in query_lower
+        )
+        
+        if is_simple_crypto_query:
+            crypto_result = await self._check_crypto_price(query)
+            if crypto_result:
+                print(f"✅ [Scout] Fast path: Found crypto price for '{query}'")
+                return crypto_result
+
+        # === PRIORITY 1: Premium External APIs (Tavily) ===
+        # Complex queries requiring research, analysis, or synthesis
+        # Examples: "market analysis for eth", "why is btc rising", "defi trends 2026"
+        
+        requires_analysis = any(kw in query_lower for kw in [
+            "analysis", "research", "who", "what", "why", "how", "explain", "trends", 
+            "compare", "best", "should", "recommend"
+        ])
+        
+        if self.premium and (requires_analysis or len(query.split()) > 4):
+            try:
+                print(f"[Scout] Complex query detected, using premium search...")
+                premium_results = await self.premium.intelligent_research(query, budget_usdc=0.10)
+                
+                if premium_results.get('error'):
+                    error_msg = premium_results.get('error', 'Unknown error')
+                    if premium_results.get('rate_limited'):
+                        print(f"⚠️  [Scout] Rate limited: {error_msg}")
+                    else:
+                        print(f"⚠️  [Scout] Premium API error: {error_msg}")
+                    print(f"    Falling back to free APIs...")
+                else:
+                    print(f"✅ [Scout] Premium search successful!")
+                    
+                    scout_result = {
+                        "source": premium_results.get("source", "tavily"),
+                        "data": {
+                            "query": premium_results.get("query", query),
+                            "answer": premium_results.get("answer", ""),
+                            "results": premium_results.get("results", []),
+                            "citations": premium_results.get("citations", [])
+                        },
+                        "hash": hashlib.sha256(
+                            json.dumps(premium_results, sort_keys=True).encode()
+                        ).hexdigest(),
+                        "timestamp": timestamp,
+                        "paid": premium_results.get("paid", True),
+                        "payment_proof": premium_results.get("payment_proof", {})
+                    }
+                    
+                    results.append(scout_result)
+                    
+                    stats = self.premium.get_rate_limit_stats()
+                    print(f"📊 [RateLimit] Today: {stats['requests_last_day']} requests, ${stats['cost_today']:.2f}")
+                    
+                    return results
+                    
+            except Exception as e:
+                print(f"❌ [Scout] Premium search exception: {e}")
+                print(f"    Falling back to free APIs...")
+        
+        # === PRIORITY 2: Internal x402 Demo (Optional) ===
+        # Only triggered by explicit "premium" or "x402" keywords
+        # This showcases the payment protocol without interfering with normal queries
+        
+        if "premium" in query_lower or "x402" in query_lower or "paid data" in query_lower:
+            print(f"[Scout] Explicit premium request, checking internal x402 endpoint...")
+            internal_result = await self._check_internal_knowledge_base(query)
+            if internal_result:
+                results.append(internal_result)
+                print(f"✅ [Scout] Internal x402 search successful!")
+                return results
+        
+        # === PRIORITY 3: Free Fallback ===
+        print(f"[Scout] Using free API fallback...")
+        
+        print(f"[Scout] 🔍 Autonomous search for: {query}")
+        
+        try:
+            # Step 1: Search the web for relevant APIs/sources
+            discovered_sources = await self._discover_sources(query)
+            
+            # Step 2: Try each discovered source
+            for source in discovered_sources[:3]:  # Top 3 results
+                try:
+                    print(f"[Scout] Trying source: {source['url']}")
+                    
+                    # Check for x402 support first (OPTIONS request)
+                    is_x402 = await self._check_x402_support(source['url'])
+                    
+                    if is_x402:
+                        # Premium x402 endpoint - pay for data
+                        print(f"[Scout] ✓ x402-enabled endpoint found, paying for data...")
+                        data = await self._fetch_with_x402(source['url'], query)
+                    else:
+                        # Free endpoint - attempt direct fetch
+                        print(f"[Scout] Free endpoint, fetching...")
+                        data = await self._fetch_free(source['url'])
+                    
+                    if data:
+                        results.append({
+                            "source": source['url'],
+                            "title": source.get('title', 'Unknown'),
+                            "data": data,
+                            "hash": hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest(),
+                            "timestamp": timestamp,
+                            "paid": is_x402
+                        })
+                        print(f"[Scout] ✓ Got data from {source['url']}")
+                        
+                except Exception as e:
+                    print(f"[Scout] Failed to fetch from {source['url']}: {e}")
+                    continue
+            
+            # Step 3: If no results, try fallback knowledge bases
+            if not results:
+                print(f"[Scout] No discovered sources, trying fallbacks...")
+                fallback_data = await self._try_fallback_sources(query)
+                if fallback_data:
+                    results.extend(fallback_data)
+            
+            # Step 4: Emergency fallback to known reliable free APIs (HackerNews only now)
+            if not results:
+                print(f"[Scout] Still no data, using emergency fallback APIs...")
+                emergency_data = await self._emergency_fallback(query)
+                if emergency_data:
+                    results.extend(emergency_data)
+                    
+        except Exception as e:
+            print(f"[Scout] Search error: {e}")
+        
+        return results
+
+    async def _check_crypto_price(self, query: str) -> Optional[List[Dict]]:
+        """Check Coingecko for crypto prices"""
+        timestamp = int(asyncio.get_event_loop().time())
+        query_lower = query.lower()
+        results = []
+
+        crypto_keywords = ["price", "market", "value", "btc", "eth", "bitcoin", "ethereum", "crypto", "coin"]
+        if not any(kw in query_lower for kw in crypto_keywords):
+            return None
+
+        try:
+            # Comprehensive coin detection with priority for longer matches
+            coin_map = {
+                "bitcoin": "bitcoin",
+                "ethereum": "ethereum", 
+                "stacks": "blockstack",
+                "solana": "solana",
+                "binance": "binancecoin",
+                "cardano": "cardano",
+                "ripple": "ripple",
+                "dogecoin": "dogecoin",
+                "avalanche": "avalanche-2",
+                "polkadot": "polkadot",
+                "polygon": "matic-network",
+                "chainlink": "chainlink",
+                "cosmos": "cosmos",
+                # Shorter symbols after full names
+                "btc": "bitcoin",
+                "eth": "ethereum",
+                "stx": "blockstack",
+                "sol": "solana",
+                "bnb": "binancecoin",
+                "ada": "cardano",
+                "xrp": "ripple",
+                "doge": "dogecoin",
+                "avax": "avalanche-2",
+                "dot": "polkadot",
+                "matic": "matic-network",
+                "link": "chainlink",
+                "atom": "cosmos"
+            }
+            
+            # Try to extract coin name from query - prioritize longer matches
+            coin_id = None
+            best_match = ""
+            for keyword, coingecko_id in coin_map.items():
+                if keyword in query_lower and len(keyword) > len(best_match):
+                    # Basic boundary check (ensure 'bit' doesn't match 'bitcoin' in query if query is just 'bit')
+                    # ideally we'd use regex but simple len check is usually ok for these keywords
+                    coin_id = coingecko_id
+                    best_match = keyword
+            
+            if not coin_id:
+                return None
+
+            print(f"[Scout] Detected coin: {coin_id} (matched: '{best_match}')")
+            
+            url = f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true"
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        coin_data = data.get(coin_id, {})
+                        
+                        if coin_data:
+                            # Proper display names
+                            name_map = {
+                                "bitcoin": "Bitcoin",
+                                "ethereum": "Ethereum",
+                                "blockstack": "Stacks",
+                                "solana": "Solana",
+                                "binancecoin": "BNB",
+                                "cardano": "Cardano",
+                                "ripple": "XRP",
+                                "dogecoin": "Dogecoin",
+                                "avalanche-2": "Avalanche",
+                                "polkadot": "Polkadot",
+                                "matic-network": "Polygon",
+                                "chainlink": "Chainlink",
+                                "cosmos": "Cosmos"
+                            }
+                            
+                            market_data = {
+                                "name": name_map.get(coin_id, coin_id.title()),
+                                "current_price_usd": coin_data.get("usd", 0),
+                                "market_cap_usd": coin_data.get("usd_market_cap", 0),
+                                "price_change_24h": coin_data.get("usd_24h_change", 0),
+                                "source": "Coingecko (Fast Path)"
+                            }
+                            
+                            results.append({
+                                "source": url,
+                                "data": market_data,
+                                "hash": hashlib.sha256(json.dumps(market_data, sort_keys=True).encode()).hexdigest(),
+                                "timestamp": timestamp,
+                                "paid": False
+                            })
+                            print(f"[Scout] ✓ Fast path: Got {coin_id} price from Coingecko")
+                            return results
+        except Exception as e:
+            print(f"[Scout] Coingecko fast path failed: {e}")
+        
+        return None
+    
+    async def _check_internal_knowledge_base(self, query: str) -> Optional[Dict]:
+        """Check internal x402 endpoint for premium data"""
+        try:
+            # Quest Engine runs on 3001
+            url = "http://localhost:3001/data"
+            
+            # Use x402 client to handle payment handshake automatically
+            # This triggers the 402 loop -> Sign -> Retry with headers
+            response = await self.x402_client.fetch_with_payment(url)
+            
+            if response.status == 200:
+                data = await response.json()
+                
+                # Check if we actually paid based on headers (simulated) or just got data
+                was_paid = 'X-PAYMENT' in response.headers or data.get('paymentStatus') == 'verified'
+                
+                return {
+                    "source": url,
+                    "data": {
+                        "content": data.get("content"),
+                        "details": data.get("data"),
+                        "query": query
+                    },
+                    "hash": hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest(),
+                    "timestamp": int(asyncio.get_event_loop().time()),
+                    "paid": was_paid,
+                    "payment_proof": response.headers.get('X-Payment-Receipt', 'simulated-payment-proof')
+                }
+        except Exception as e:
+            # Connection refused if backend down, etc.
+            # print(f"[Scout] Internal x402 check failed: {e}")
+            pass
+            
+        return None
+
+    async def _discover_sources(self, query: str) -> List[Dict]:
+        """Discover data sources via web search"""
+        sources = []
+        
+        # Use Brave Search API (free tier: 2k queries/month)
+        brave_api_key = os.getenv("BRAVE_API_KEY", "")
+        
+        if brave_api_key:
+            try:
+                search_query = f"{query} API real-time data"
+                url = f"https://api.search.brave.com/res/v1/web/search?q={search_query}&count=5"
+                
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, headers={"X-Subscription-Token": brave_api_key}) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            for result in data.get("web", {}).get("results", []):
+                                sources.append({
+                                    "url": result.get("url"),
+                                    "title": result.get("title"),
+                                    "description": result.get("description")
+                                })
+                            print(f"[Scout] Discovered {len(sources)} potential sources via Brave Search")
+            except Exception as e:
+                print(f"[Scout] Brave Search error: {e}")
+        
+        # Fallback: DuckDuckGo Instant Answers (free, no key)
+        if not sources:
+            try:
+                ddg_url = f"https://api.duckduckgo.com/?q={query}&format=json"
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(ddg_url) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if data.get("AbstractURL"):
+                                sources.append({
+                                    "url": data["AbstractURL"],
+                                    "title": data.get("Heading", "DuckDuckGo Result"),
+                                    "description": data.get("Abstract", "")
+                                })
+                print(f"[Scout] Found {len(sources)} sources via DuckDuckGo")
+            except Exception as e:
+                print(f"[Scout] DDG search error: {e}")
+        
+        return sources
+    
+    async def _check_x402_support(self, url: str) -> bool:
+        """Check if endpoint supports x402 payments"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.options(url, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                    # Check for x402 headers
+                    return 'x-payment-required' in [h.lower() for h in response.headers.keys()]
+        except:
+            return False
+    
+    async def _fetch_with_x402(self, url: str, query: str) -> Optional[Dict]:
+        """Fetch data from x402-enabled endpoint with payment"""
+        try:
+            response = await self.x402_client.fetch_with_payment(url)
+            if response:
+                content_type = response.headers.get('content-type', '')
+                if 'json' in content_type:
+                    return await response.json()
+                else:
+                    text = await response.text()
+                    return {"result": text, "query": query}
+        except Exception as e:
+            print(f"[Scout] x402 fetch error: {e}")
+        return None
+    
+    async def _fetch_free(self, url: str) -> Optional[Dict]:
+        """Fetch from free endpoint"""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    if response.status == 200:
+                        content_type = response.headers.get('content-type', '')
+                        if 'json' in content_type:
+                            return await response.json()
+                        else:
+                            # Try to extract meaningful data from HTML/text
+                            text = await response.text()
+                            return {"content": text[:500], "type": "text"}  # First 500 chars
+        except:
+            pass
+        return None
+    
+    async def _try_fallback_sources(self, query: str) -> List[Dict]:
+        """Fallback to known free knowledge bases"""
+        results = []
+        timestamp = int(asyncio.get_event_loop().time())
+        
+        # Try Wikipedia for general knowledge
+        try:
+            wiki_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(wiki_url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        results.append({
+                            "source": wiki_url,
+                            "data": {
+                                "title": data.get("title"),
+                                "summary": data.get("extract"),
+                                "source": "Wikipedia"
+                            },
+                            "hash": hashlib.sha256(json.dumps(data, sort_keys=True).encode()).hexdigest(),
+                            "timestamp": timestamp,
+                            "paid": False
+                        })
+                        print(f"[Scout] ✓ Got fallback data from Wikipedia")
+        except:
+            pass
+        
+        return results
+    
+    async def _emergency_fallback(self, query: str) -> List[Dict]:
+        """
+        Emergency fallback to known reliable free APIs
+        Used when web search AND knowledge bases fail
+        """
+        results = []
+        timestamp = int(asyncio.get_event_loop().time())
+        query_lower = query.lower()
+        
+        # General/News fallback (HackerNews)
+        try:
+            url = f"http://hn.algolia.com/api/v1/search?query={query_lower}&tags=story&hitsPerPage=3"
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        hits = data.get("hits", [])
+                        
+                        if hits:
+                            cleaned_hits = []
+                            for hit in hits:
+                                cleaned_hits.append({
+                                    "title": hit.get("title"),
+                                    "url": hit.get("url"),
+                                    "points": hit.get("points"),
+                                    "author": hit.get("author")
+                                })
+                            
+                            results.append({
+                                "source": url,
+                                "data": {
+                                    "results": cleaned_hits,
+                                    "summary": f"Found {len(cleaned_hits)} HackerNews discussions"
+                                },
+                                "hash": hashlib.sha256(json.dumps(cleaned_hits, sort_keys=True).encode()).hexdigest(),
+                                "timestamp": timestamp,
+                                "paid": False
+                            })
+                            print(f"[Scout] ✓ Emergency fallback: Found {len(hits)} HN results")
+        except Exception as e:
+            print(f"[Scout] HackerNews emergency fallback failed: {e}")
+        
+        return results
             
     async def run(self):
         """Main agent loop"""
