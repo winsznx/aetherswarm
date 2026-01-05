@@ -64,8 +64,9 @@ const CHAINS = {
         explorerUrl: 'https://sepolia.basescan.org',
         contracts: {
             questPool: process.env.QUEST_POOL_ADDRESS_BASE || '',
-            discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS_BASE || '',
-            reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS_BASE || '',
+            discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS_BASE || '0x924FB10829A05023E09AF126Fe97E3cD79690227',
+            reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS_BASE || '0xe720AdC0b72885fBf2EA079D043063Aa63b02a59',
+            questLogger: process.env.QUEST_LOGGER_ADDRESS_BASE || '0xC4B63ba513882E35073319bb7e91F53FdCf6b3fd',
             artifactNFT: process.env.ARTIFACT_NFT_ADDRESS_BASE || '',
         }
     },

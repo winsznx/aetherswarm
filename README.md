@@ -74,6 +74,14 @@ AetherSwarm implements a novel 3-layer architecture for autonomous agent economi
 - **ERC-8004 Registry**: On-chain identity and reputation for agents.
 - **Payment Settlement**: All micro-transactions settled on Base/Polygon.
 
+## 🔗 Verified Contracts (Base Sepolia)
+
+| Contract | Address | Explorer |
+|----------|---------|----------|
+| **AgentRegistry** (ERC-8004) | `0x924FB10829A05023E09AF126Fe97E3cD79690227` | [View](https://sepolia.basescan.org/address/0x924FB10829A05023E09AF126Fe97E3cD79690227) |
+| **ReputationRegistry** | `0xe720AdC0b72885fBf2EA079D043063Aa63b02a59` | [View](https://sepolia.basescan.org/address/0xe720AdC0b72885fBf2EA079D043063Aa63b02a59) |
+| **QuestLogger** | `0xC4B63ba513882E35073319bb7e91F53FdCf6b3fd` | [View](https://sepolia.basescan.org/address/0xC4B63ba513882E35073319bb7e91F53FdCf6b3fd) |
+
 ---
 
 ## 📚 Documentation
