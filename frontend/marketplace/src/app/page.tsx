@@ -8,6 +8,7 @@ import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits } from 'viem';
 import { API_CONFIG } from '@/config/api';
 import { AETHER_SWARM_CONTRACTS, CURRENT_CHAIN_ID } from '@/config/contracts';
+import { USDC_ADDRESSES, ERC20_ABI } from '@/config/wagmi';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import {
   ReactFlow,
