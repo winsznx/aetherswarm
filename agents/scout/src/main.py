@@ -72,7 +72,8 @@ class ScoutAgent:
             print(f"[Scout] Error initializing x402 client: {e}")
             import traceback
             traceback.print_exc()
-            raise
+            self.x402_client = None
+            print("[Scout] Warning: Running without x402 client (cannot process paid quests)")
         
         self.ws = None
         
@@ -112,7 +113,7 @@ class ScoutAgent:
             "type": "register",
             "role": "scout",
             "agentId": self.agent_id,
-            "address": self.x402_client.address,
+            "address": self.x402_client.address if self.x402_client else "0x0000000000000000000000000000000000000000",
             "capabilities": ["web_scraping", "api_query", "document_fetch"]
         }
         
