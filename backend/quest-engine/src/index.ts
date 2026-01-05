@@ -28,8 +28,30 @@ if (existsSync(envPath)) {
 }
 
 const app = express();
+
+// CORS configuration - allow production and development origins
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:3002',
+    'http://127.0.0.1:3000',
+    'https://aetherswarm.xyz',
+    'https://www.aetherswarm.xyz',
+    ...(process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : [])
+];
+
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3002', 'http://127.0.0.1:3000'],
+    origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        // Also allow any vercel preview URLs
+        if (origin.includes('.vercel.app')) {
+            return callback(null, true);
+        }
+        callback(new Error('Not allowed by CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment-Response'],
     credentials: true,
