@@ -214,7 +214,7 @@ const discoveryClient = new DiscoveryRegistryClient();
 
 // --- Combined HTTP + WebSocket Server ---
 // Railway only exposes one port, so we run both HTTP and WebSocket on the same port
-const port = parseInt(process.env.PORT || process.env.WS_PORT || '8080');
+const port = parseInt(process.env.PORT || process.env.WS_PORT || '8081'); // Default to 8081 to match Dockerfile EXPOSE
 
 // Create HTTP server first
 const server = http.createServer((req, res) => {

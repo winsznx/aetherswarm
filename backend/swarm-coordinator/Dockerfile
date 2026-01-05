@@ -11,10 +11,10 @@ RUN npm install
 # Copy source code
 COPY . .
 
-# Set health port environment variable
-ENV HEALTH_PORT=8081
+# Set port environment variable
+ENV PORT=8081
 
-# Expose health check port
+# Expose port
 EXPOSE 8081
 
 # Start
