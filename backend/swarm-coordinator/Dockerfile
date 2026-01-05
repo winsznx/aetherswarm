@@ -11,6 +11,9 @@ RUN npm install
 # Copy source code
 COPY . .
 
+# Build TypeScript
+RUN npm run build
+
 # Set port environment variable
 ENV PORT=8081
 
@@ -18,4 +21,4 @@ ENV PORT=8081
 EXPOSE 8081
 
 # Start
-CMD ["npm", "start"]
+CMD ["node", "dist/index.js"]
