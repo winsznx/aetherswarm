@@ -249,9 +249,38 @@ impl VerifierAgent {
         }
     }
 
-    /// Main agent loop
+    /// Main agent loop with reconnection
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("[Verifier] Connecting to coordinator: {}", self.coordinator_url);
+        let max_retries = 10;
+        let mut retry_count = 0;
+
+        while retry_count < max_retries {
+            match self.run_once(retry_count + 1, max_retries).await {
+                Ok(_) => {
+                    println!("[Verifier] Connection closed, will retry in 5 seconds...");
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    retry_count += 1;
+                }
+                Err(e) => {
+                    eprintln!("[Verifier] Connection error: {}", e);
+                    retry_count += 1;
+                    if retry_count < max_retries {
+                        let wait_time = std::cmp::min(5 * retry_count, 30);
+                        println!("[Verifier] Retrying in {} seconds...", wait_time);
+                        tokio::time::sleep(tokio::time::Duration::from_secs(wait_time as u64)).await;
+                    }
+                }
+            }
+        }
+
+        println!("[Verifier] Max retries ({}) reached. Exiting.", max_retries);
+        Ok(())
+    }
+
+    /// Single connection attempt
+    async fn run_once(&self, attempt: i32, max_attempts: i32) -> Result<(), Box<dyn std::error::Error>> {
+        println!("[Verifier] Connecting to coordinator (attempt {}/{})...", attempt, max_attempts);
+        println!("[Verifier] URL: {}", self.coordinator_url);
 
         let (ws_stream, _) = connect_async(&self.coordinator_url).await?;
         let (mut write, mut read) = ws_stream.split();
@@ -266,6 +295,17 @@ impl VerifierAgent {
 
         write.send(Message::Text(registration.to_string().into())).await?;
         println!("[Verifier] Registered as {}", self.agent_id);
+        println!("[Verifier] Connected successfully! Listening for tasks...");
+
+        // Spawn heartbeat task
+        let agent_id = self.agent_id.clone();
+        let heartbeat_handle = tokio::spawn(async move {
+            let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+            loop {
+                interval.tick().await;
+                println!("[Verifier] Heartbeat tick (would send ping if we had write access)");
+            }
+        });
 
         // Listen for tasks
         while let Some(msg) = read.next().await {
@@ -275,18 +315,25 @@ impl VerifierAgent {
                         write.send(Message::Text(response.into())).await?;
                     }
                 }
+                Ok(Message::Ping(data)) => {
+                    println!("[Verifier] Received ping, sending pong");
+                    write.send(Message::Pong(data)).await?;
+                }
                 Ok(Message::Close(_)) => {
-                    println!("[Verifier] Connection closed");
+                    println!("[Verifier] Connection closed by server");
+                    heartbeat_handle.abort();
                     break;
                 }
                 Err(e) => {
                     eprintln!("[Verifier] WebSocket error: {}", e);
-                    break;
+                    heartbeat_handle.abort();
+                    return Err(Box::new(e));
                 }
                 _ => {}
             }
         }
 
+        heartbeat_handle.abort();
         Ok(())
     }
 }
@@ -296,5 +343,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenv::dotenv().ok();
     
     let agent = VerifierAgent::new();
-    agent.run().await
+    match agent.run().await {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            eprintln!("[Verifier] Fatal error: {}", e);
+            Err(e)
+        }
+    }
 }

@@ -415,29 +415,90 @@ class SynthesizerAgent:
                 "error": str(e)
             }
     
+    async def heartbeat(self):
+        """Send periodic pings to keep connection alive"""
+        try:
+            while True:
+                await asyncio.sleep(30)  # Send ping every 30 seconds
+                if self.ws and not self.ws.closed:
+                    ping_msg = json.dumps({"type": "ping", "agentId": self.agent_id})
+                    await self.ws.send(ping_msg)
+                    print(f"[Synthesizer] Sent heartbeat ping")
+                else:
+                    print(f"[Synthesizer] WebSocket closed, stopping heartbeat")
+                    break
+        except Exception as e:
+            print(f"[Synthesizer] Heartbeat error: {e}")
+    
     async def run(self):
-        """Main agent loop"""
-        await self.connect()
+        """Main agent loop with reconnection logic"""
+        retry_count = 0
+        max_retries = 10
         
-        print(f"[Synthesizer] Listening for tasks...")
-        
-        async for message in self.ws:
+        while retry_count < max_retries:
             try:
-                task = json.loads(message)
-                result = await self.handle_task(task)
+                print(f"[Synthesizer] Connecting to coordinator (attempt {retry_count + 1}/{max_retries})...")
+                await self.connect()
                 
-                if result:
-                    await self.ws.send(json.dumps(result))
-                    
-            except json.JSONDecodeError:
-                print(f"[Synthesizer] Invalid JSON: {message}")
+                print(f"[Synthesizer] Connected successfully! Listening for tasks...")
+                
+                # Start heartbeat task
+                heartbeat_task = asyncio.create_task(self.heartbeat())
+                
+                try:
+                    async for message in self.ws:
+                        try:
+                            task = json.loads(message)
+                            result = await self.handle_task(task)
+                            
+                            if result:
+                                await self.ws.send(json.dumps(result))
+                                
+                        except json.JSONDecodeError:
+                            print(f"[Synthesizer] Invalid JSON: {message}")
+                        except Exception as e:
+                            print(f"[Synthesizer] Error handling task: {e}")
+                            import traceback
+                            traceback.print_exc()
+                except Exception as e:
+                    print(f"[Synthesizer] WebSocket loop error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                finally:
+                    heartbeat_task.cancel()
+                    try:
+                        await heartbeat_task
+                    except asyncio.CancelledError:
+                        pass
+                
+                # If we get here, connection was closed
+                print(f"[Synthesizer] Connection closed, will retry in 5 seconds...")
+                await asyncio.sleep(5)
+                retry_count += 1
+                
             except Exception as e:
-                print(f"[Synthesizer] Error: {e}")
+                print(f"[Synthesizer] Connection error: {e}")
+                import traceback
+                traceback.print_exc()
+                retry_count += 1
+                if retry_count < max_retries:
+                    wait_time = min(5 * retry_count, 30)  # Exponential backoff, max 30s
+                    print(f"[Synthesizer] Retrying in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+        
+        print(f"[Synthesizer] Max retries ({max_retries}) reached. Exiting.")
 
 
 async def main():
     agent = SynthesizerAgent()
-    await agent.run()
+    try:
+        await agent.run()
+    except KeyboardInterrupt:
+        print("[Synthesizer] Shutting down gracefully...")
+    except Exception as e:
+        print(f"[Synthesizer] Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":

@@ -672,25 +672,86 @@ class ScoutAgent:
         
         return results
             
+    async def heartbeat(self):
+        """Send periodic pings to keep connection alive"""
+        try:
+            while True:
+                await asyncio.sleep(30)  # Send ping every 30 seconds
+                if self.ws and not self.ws.closed:
+                    ping_msg = json.dumps({"type": "ping", "agentId": self.agent_id})
+                    await self.ws.send(ping_msg)
+                    print(f"[Scout] Sent heartbeat ping")
+                else:
+                    print(f"[Scout] WebSocket closed, stopping heartbeat")
+                    break
+        except Exception as e:
+            print(f"[Scout] Heartbeat error: {e}")
+    
     async def run(self):
-        """Main agent loop"""
-        await self.connect()
+        """Main agent loop with reconnection logic"""
+        retry_count = 0
+        max_retries = 10
         
-        print(f"[Scout] Listening for tasks...")
-        
-        async for message in self.ws:
+        while retry_count < max_retries:
             try:
-                task = json.loads(message)
-                await self.handle_task(task)
-            except json.JSONDecodeError:
-                print(f"[Scout] Invalid JSON received: {message}")
+                print(f"[Scout] Connecting to coordinator (attempt {retry_count + 1}/{max_retries})...")
+                await self.connect()
+                
+                print(f"[Scout] Connected successfully! Listening for tasks...")
+                
+                # Start heartbeat task
+                heartbeat_task = asyncio.create_task(self.heartbeat())
+                
+                try:
+                    async for message in self.ws:
+                        try:
+                            task = json.loads(message)
+                            await self.handle_task(task)
+                        except json.JSONDecodeError:
+                            print(f"[Scout] Invalid JSON received: {message}")
+                        except Exception as e:
+                            print(f"[Scout] Error handling task: {e}")
+                            import traceback
+                            traceback.print_exc()
+                except Exception as e:
+                    print(f"[Scout] WebSocket loop error: {e}")
+                    import traceback
+                    traceback.print_exc()
+                finally:
+                    heartbeat_task.cancel()
+                    try:
+                        await heartbeat_task
+                    except asyncio.CancelledError:
+                        pass
+                
+                # If we get here, connection was closed
+                print(f"[Scout] Connection closed, will retry in 5 seconds...")
+                await asyncio.sleep(5)
+                retry_count += 1
+                
             except Exception as e:
-                print(f"[Scout] Error handling task: {e}")
+                print(f"[Scout] Connection error: {e}")
+                import traceback
+                traceback.print_exc()
+                retry_count += 1
+                if retry_count < max_retries:
+                    wait_time = min(5 * retry_count, 30)  # Exponential backoff, max 30s
+                    print(f"[Scout] Retrying in {wait_time} seconds...")
+                    await asyncio.sleep(wait_time)
+        
+        print(f"[Scout] Max retries ({max_retries}) reached. Exiting.")
 
 
 async def main():
     agent = ScoutAgent()
-    await agent.run()
+    try:
+        await agent.run()
+    except KeyboardInterrupt:
+        print("[Scout] Shutting down gracefully...")
+    except Exception as e:
+        print(f"[Scout] Fatal error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
