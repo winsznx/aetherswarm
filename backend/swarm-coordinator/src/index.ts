@@ -6,6 +6,7 @@
  * - x402 payment verification
  * - TEE attestation validation
  * - Real-time agent management
+ * - /agents endpoint for frontend
  */
 
 import { Worker, Queue } from 'bullmq';
@@ -13,6 +14,7 @@ import IORedis from 'ioredis';
 import { WebSocketServer, WebSocket } from 'ws';
 import * as dotenv from 'dotenv';
 import { ethers } from 'ethers';
+import http from 'http';
 
 dotenv.config({ path: '../../.env' });
 
@@ -39,7 +41,7 @@ interface AgentInfo {
 }
 
 class DiscoveryRegistryClient {
-    private provider: ethers.JsonRpcProvider;
+    private provider?: ethers.JsonRpcProvider;
     private registryAddress: string;
     private registryAbi = [
         'function getAgentsByRole(uint8 role) view returns (uint256[])',
@@ -47,31 +49,44 @@ class DiscoveryRegistryClient {
         'function totalAgents() view returns (uint256)'
     ];
     private reputationAbi = [
-        'function getReputation(uint256 agentId) view returns (uint256 averageScore, uint256 feedbackCount)'
+        'function get Reputation(uint256 agentId) view returns (uint256 averageScore, uint256 feedbackCount)'
     ];
     private contract?: ethers.Contract;
     private reputationContract?: ethers.Contract;
 
     constructor() {
         const rpcUrl = process.env.RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/demo';
-        this.provider = new ethers.JsonRpcProvider(rpcUrl);
         this.registryAddress = process.env.DISCOVERY_REGISTRY_ADDRESS || '';
 
-        if (this.registryAddress) {
-            this.contract = new ethers.Contract(
-                this.registryAddress,
-                this.registryAbi,
-                this.provider
-            );
+        // Skip RPC entirely in dev mode
+        if (process.env.DEV_MODE === 'true') {
+            console.log('[Discovery] Running in DEV_MODE - using local agents only, no blockchain connection');
+            return;
+        }
 
-            const reputationAddress = process.env.REPUTATION_REGISTRY_ADDRESS;
-            if (reputationAddress) {
-                this.reputationContract = new ethers.Contract(
-                    reputationAddress,
-                    this.reputationAbi,
+        // Try to initialize provider, but don't block if it fails
+        try {
+            this.provider = new ethers.JsonRpcProvider(rpcUrl);
+
+            if (this.registryAddress) {
+                this.contract = new ethers.Contract(
+                    this.registryAddress,
+                    this.registryAbi,
                     this.provider
                 );
+
+                const reputationAddress = process.env.REPUTATION_REGISTRY_ADDRESS;
+                if (reputationAddress) {
+                    this.reputationContract = new ethers.Contract(
+                        reputationAddress,
+                        this.reputationAbi,
+                        this.provider
+                    );
+                }
             }
+        } catch (error) {
+            console.warn('[Discovery] RPC connection failed, running in dev mode (local agents only)');
+            console.warn('[Discovery] Error:', error instanceof Error ? error.message : String(error));
         }
     }
 
@@ -80,7 +95,7 @@ class DiscoveryRegistryClient {
      * Filters by minimum reputation score
      */
     async discoverAgents(role: 'scout' | 'verifier' | 'synthesizer', minReputation: number = 0): Promise<AgentInfo[]> {
-        if (!this.registryAddress) {
+        if (!this.registryAddress || !this.contract) {
             console.log('[Discovery] No registry configured, using local agents only');
             return [];
         }
@@ -154,7 +169,9 @@ interface QuestState {
     status: 'scouting' | 'verifying' | 'synthesizing' | 'complete' | 'failed';
     data: any;
     scoutResults?: any[];
+    scoutSummary?: string;
     verificationAttestation?: any;
+    attestationTxHash?: string;
     artifact?: any;
     assignedAgents: {
         scout?: string;
@@ -246,16 +263,25 @@ async function handleTaskResult(result: any): Promise<void> {
     }
 
     if (quest.status === 'scouting' && status === 'complete') {
-        // Store scout results and move to verification
+        // Store scout results and summary, then move to verification
         quest.scoutResults = result.results;
+        quest.scoutSummary = result.summary;
         quest.status = 'verifying';
 
         await dispatchVerificationTask(quest);
     }
-    else if (quest.status === 'verifying' && (status === 'verified' || status === 'partial')) {
-        // Store attestation and move to synthesis
-        quest.verificationAttestation = result.attestation;
+    else if (quest.status === 'verifying') {
+        console.log(`[Coordinator] Verification phase ended. Status: ${status}`);
+
+        // Store attestation (even if failed/partial) and move to synthesis
+        if (result.attestation) {
+            quest.verificationAttestation = result.attestation;
+            quest.attestationTxHash = result.attestationTxHash;
+        }
+
         quest.status = 'synthesizing';
+
+        console.log(`[Coordinator] Quest ${questId} moving to Synthesis phase.`);
 
         await dispatchSynthesisTask(quest);
     }
@@ -272,7 +298,10 @@ async function handleTaskResult(result: any): Promise<void> {
             questId,
             artifact: result.artifact,
             attestation: quest.verificationAttestation,
-            contributors: Object.values(quest.assignedAgents).filter(Boolean)
+            contributors: Object.values(quest.assignedAgents).filter(Boolean),
+            scoutResults: quest.scoutResults || [],
+            scoutSummary: quest.scoutSummary || '',
+            attestationTxHash: quest.attestationTxHash
         });
 
         activeQuests.delete(questId);
@@ -293,6 +322,10 @@ async function dispatchScoutingTask(quest: QuestState): Promise<void> {
     // Then check connected agents
     const connectedScouts = Array.from(connectedAgents.values())
         .filter(a => a.role === 'scout');
+
+    console.log(`[Coordinator] Total connected agents: ${connectedAgents.size}`);
+    console.log(`[Coordinator] Connected scouts: ${connectedScouts.length}`);
+
 
     // Prefer registered agents with high reputation
     let selectedScout: ConnectedAgent | undefined;
@@ -325,9 +358,7 @@ async function dispatchScoutingTask(quest: QuestState): Promise<void> {
         type: 'query_quest',
         questId: quest.questId,
         objective: quest.data.objectives?.[0] || quest.data.objective,
-        sources: quest.data.sources || [
-            'https://api.example.com/data'  // Would come from quest specification
-        ],
+        sources: quest.data.sources || (process.env.DEFAULT_X402_SOURCES || 'https://api.faremeter.com/v1/test').split(','),
         budget: quest.budget.scoutAllocation,
         constraints: quest.data.constraints
     };
@@ -481,11 +512,20 @@ questWorker.on('failed', (job, err) => {
 
 console.log('[Coordinator] Quest worker started, listening for jobs...');
 
-// --- Health Check Endpoint ---
-
-import http from 'http';
+// --- Health Check \u0026 Agent Info Endpoint ---
 
 const healthServer = http.createServer((req, res) => {
+    // CORS headers for frontend
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+    }
+
     if (req.url === '/health') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
@@ -498,6 +538,22 @@ const healthServer = http.createServer((req, res) => {
                 synthesizers: Array.from(connectedAgents.values()).filter(a => a.role === 'synthesizer').length
             }
         }));
+    } else if (req.url === '/agents') {
+        // Return detailed agent information
+        const agents = Array.from(connectedAgents.values()).map(agent => ({
+            id: agent.agentId,
+            role: agent.role,
+            address: agent.address || 'N/A',
+            status: 'active',
+            capabilities: agent.capabilities || [],
+            reputation: agent.discoveryInfo?.reputationScore || 0,
+            wsEndpoint: agent.discoveryInfo?.wsEndpoint,
+            stakeAmount: agent.discoveryInfo?.stakeAmount ? Number(agent.discoveryInfo.stakeAmount) : 0,
+            registeredAt: agent.discoveryInfo?.registeredAt
+        }));
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ agents }));
     } else {
         res.writeHead(404);
         res.end();
@@ -507,4 +563,5 @@ const healthServer = http.createServer((req, res) => {
 const healthPort = parseInt(process.env.HEALTH_PORT || '8081');
 healthServer.listen(healthPort, () => {
     console.log(`[Coordinator] Health endpoint on http://localhost:${healthPort}/health`);
+    console.log(`[Coordinator] Agents endpoint on http://localhost:${healthPort}/agents`);
 });
