@@ -281,61 +281,33 @@ export default function Home() {
     const currentChainId = chainId as number;
     const usdcAddress = USDC_ADDRESSES[currentChainId];
 
-    // Allow testnet to skip payment for easier testing
-    const isTestnet = currentChainId === 80002; // Polygon Amoy
+    if (!usdcAddress) {
+      alert('Please switch to Polygon Amoy (chain 80002) or Polygon Mainnet (chain 137) for USDC payments');
+      return;
+    }
 
-    if (!usdcAddress && !isTestnet) {
-      alert('Please switch to Polygon Amoy or Polygon Mainnet for USDC payments');
+    // Prevent double-click while pending
+    if (isPending) {
+      console.log('[Quest] Transaction already pending...');
       return;
     }
 
     setIsCreating(true);
+    setPaymentStep('paying');
 
     try {
-      // For testnet, skip payment and create quest directly
-      if (isTestnet) {
-        console.log('[Quest] Testnet detected - creating quest without payment');
-        setPaymentStep('creating');
-
-        const res = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            objectives: newQuest.objectives,
-            budget: newQuest.budget,
-            userId: address,
-            paymentTxHash: null, // Skip payment on testnet
-          }),
-        });
-
-        if (!res.ok) {
-          throw new Error(`Quest creation failed: ${res.status}`);
-        }
-
-        const data = await res.json();
-        if (data.questId) {
-          setQuests((prev) => [{ ...data, objectives: newQuest.objectives }, ...prev]);
-          setNewQuest({ objectives: '', budget: '10.00' });
-          setPaymentStep('done');
-          setTimeout(() => setPaymentStep('idle'), 3000);
-        }
-        setIsCreating(false);
-        return;
-      }
-
-      // For mainnet, require USDC payment
-      setPaymentStep('paying');
-
       // Convert budget to USDC amount (6 decimals)
       const amount = parseUnits(newQuest.budget, 6);
 
       console.log('[Quest] Initiating USDC transfer:', {
+        chainId: currentChainId,
+        usdcContract: usdcAddress,
         to: TREASURY_ADDRESS,
         amount: amount.toString(),
-        usdcAddress,
+        budget: newQuest.budget,
       });
 
-      // Transfer USDC to treasury
+      // Transfer USDC to treasury - this should trigger wallet popup
       writeContract({
         address: usdcAddress as `0x${string}`,
         abi: ERC20_ABI,
@@ -344,8 +316,8 @@ export default function Home() {
       });
 
     } catch (error) {
-      console.error('Quest creation failed:', error);
-      alert('Failed to create quest. Please try again.');
+      console.error('[Quest] Payment initiation failed:', error);
+      alert('Failed to initiate payment. Check console for details.');
       setPaymentStep('idle');
       setIsCreating(false);
     }
