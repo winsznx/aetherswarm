@@ -1,3 +1,6 @@
 [phases.setup]
 nixPkgs = ["rustc", "cargo", "openssl", "pkg-config", "gcc", "cmake"]
 aptPkgs = ["libssl-dev", "pkg-config"]
+
+[phases.build]
+cmds = ["rm -f Cargo.lock", "cargo build --release"]
