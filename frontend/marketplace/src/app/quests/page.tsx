@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { API_CONFIG } from '@/config/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppKit, useAppKitAccount } from '@reown/appkit/react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -58,7 +60,7 @@ export default function QuestsPage() {
     useEffect(() => {
         const fetchQuests = async () => {
             try {
-                const res = await fetch(`${process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001'}/quests`);
+                const res = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests`);
                 if (res.ok) {
                     const data = await res.json();
                     setQuests(data.quests || []);
@@ -89,7 +91,7 @@ export default function QuestsPage() {
 
         setIsCreating(true);
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001'}/quests`, {
+            const res = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -114,7 +116,7 @@ export default function QuestsPage() {
                 setShowProgressModal(true);
 
                 // Refresh quests list
-                const questsRes = await fetch(`${process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001'}/quests`);
+                const questsRes = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests`);
                 if (questsRes.ok) {
                     const questsData = await questsRes.json();
                     setQuests(questsData.quests || []);
@@ -681,4 +683,3 @@ export default function QuestsPage() {
         </div>
     );
 }
-

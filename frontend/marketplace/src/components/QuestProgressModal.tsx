@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { API_CONFIG } from '@/config/api';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface QuestProgressModalProps {
@@ -65,7 +66,7 @@ export function QuestProgressModal({ questId, isOpen, onClose }: QuestProgressMo
     const fetchQuestStatus = async () => {
         if (!questId) return;
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001'}/quests/${questId}`);
+            const res = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests/${questId}`);
             if (res.ok) {
                 const data = await res.json();
                 setQuestData(data);

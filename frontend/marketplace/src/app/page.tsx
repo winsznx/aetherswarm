@@ -6,7 +6,8 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useAppKit, useAppKitAccount, useAppKitNetwork } from '@reown/appkit/react';
 import { useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits } from 'viem';
-import { USDC_ADDRESSES, ERC20_ABI } from '@/config/wagmi';
+import { API_CONFIG } from '@/config/api';
+import { AETHER_SWARM_CONTRACTS, CURRENT_CHAIN_ID } from '@/config/contracts';
 import { Sun, Moon, Monitor } from 'lucide-react';
 import {
   ReactFlow,
@@ -237,7 +238,7 @@ export default function Home() {
   // Fetch health data
   const fetchHealth = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8081/health');
+      const res = await fetch(`${API_CONFIG.COORDINATOR_URL}/health`);
       const data = await res.json();
       setHealth(data);
 
@@ -314,7 +315,7 @@ export default function Home() {
       // Create quest after payment confirmed
       const createQuestAfterPayment = async () => {
         try {
-          const res = await fetch('http://localhost:3001/quests', {
+          const res = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

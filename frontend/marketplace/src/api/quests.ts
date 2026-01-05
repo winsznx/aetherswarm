@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { z } from 'zod';
 import type { Quest } from '../types';
+import { API_CONFIG } from '@/config/api';
 
-const API_BASE = process.env.NEXT_PUBLIC_QUEST_ENGINE_URL || 'http://localhost:3001';
+const API_BASE = API_CONFIG.QUEST_ENGINE_URL;
 const api = axios.create({ baseURL: API_BASE });
 
 api.interceptors.response.use(

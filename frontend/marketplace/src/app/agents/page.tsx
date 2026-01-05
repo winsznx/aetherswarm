@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { API_CONFIG } from '@/config/api';
 import { motion, useMotionValue, useSpring, AnimatePresence } from 'framer-motion';
 import {
     ReactFlow,
@@ -147,7 +148,7 @@ export default function AgentsPage() {
 
     const fetchHealth = useCallback(async () => {
         try {
-            const res = await fetch('http://localhost:8081/health');
+            const res = await fetch(`${API_CONFIG.COORDINATOR_URL}/health`);
             const data = await res.json();
             setHealth(data);
 
@@ -182,7 +183,7 @@ export default function AgentsPage() {
 
     const fetchAgents = useCallback(async () => {
         try {
-            const res = await fetch('http://localhost:8081/agents');
+            const res = await fetch(`${API_CONFIG.COORDINATOR_URL}/agents`);
             const data = await res.json();
             setAgents(data.agents || []);
         } catch (e) {
