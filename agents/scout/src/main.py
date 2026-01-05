@@ -55,9 +55,25 @@ class ScoutAgent:
         self.agent_id = os.getenv("AGENT_ID", "scout-001")
         
         if not self.private_key:
-            raise ValueError("AGENT_PRIVATE_KEY environment variable required")
+            # Generate a random private key for development
+            print("[Scout] ⚠️  AGENT_PRIVATE_KEY not set, generating random key (DEV MODE)")
+            from eth_account import Account
+            import secrets
+            account = Account.create(secrets.token_hex(32))
+            self.private_key = account.key.hex()
+            print(f"[Scout] Generated address: {account.address}")
+        else:
+            print(f"[Scout] Using configured private key")
         
-        self.x402_client = FaremeterClient(self.private_key)
+        try:
+            self.x402_client = FaremeterClient(self.private_key)
+            print(f"[Scout] x402 client initialized with address: {self.x402_client.address}")
+        except Exception as e:
+            print(f"[Scout] Error initializing x402 client: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
+        
         self.ws = None
         
         # Initialize premium API client with rate limiting
