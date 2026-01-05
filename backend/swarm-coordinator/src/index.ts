@@ -214,7 +214,7 @@ const discoveryClient = new DiscoveryRegistryClient();
 
 // --- Combined HTTP + WebSocket Server ---
 // Railway only exposes one port, so we run both HTTP and WebSocket on the same port
-const port = parseInt(process.env.PORT || process.env.WS_PORT || '8081'); // Default to 8081 to match Dockerfile EXPOSE
+const port = parseInt(process.env.PORT || process.env.WS_PORT || '3001'); // Default to 3001 for Railway
 
 // Create HTTP server first
 const server = http.createServer((req, res) => {
@@ -581,10 +581,10 @@ questWorker.on('failed', (job, err) => {
 console.log('[Coordinator] Quest worker started, listening for jobs...');
 
 // Start the combined HTTP + WebSocket server
-const port = parseInt(process.env.PORT || process.env.WS_PORT || '3001');
-server.listen(port, () => {
+// Port is defined at the top of the file
+server.listen(port, '0.0.0.0', () => {
     console.log(`[Coordinator] Server running on port ${port}`);
-    console.log(`[Coordinator] WebSocket endpoint: ws://localhost:${port}`);
-    console.log(`[Coordinator] Health endpoint: http://localhost:${port}/health`);
-    console.log(`[Coordinator] Agents endpoint: http://localhost:${port}/agents`);
+    console.log(`[Coordinator] WebSocket endpoint: ws://0.0.0.0:${port}`);
+    console.log(`[Coordinator] Health endpoint: http://0.0.0.0:${port}/health`);
+    console.log(`[Coordinator] Agents endpoint: http://0.0.0.0:${port}/agents`);
 });
