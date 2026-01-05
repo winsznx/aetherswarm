@@ -43,20 +43,54 @@ const ARTIFACT_NFT_ABI = [
 ];
 
 // Contract addresses from .env
-const CONTRACT_ADDRESSES = {
-    questPool: process.env.QUEST_POOL_ADDRESS || '0xa1Ec92002c51eD8E117dD4E015b74DcCD70D796F',
-    discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS || '0x30412D42E76d358Ad364411C8C22d050e2DC7af7',
-    reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS || '0x9421c754C2cA9752513E500827373d3957ca9259',
-    artifactNFT: process.env.ARTIFACT_NFT_ADDRESS || '0x585Eba2C08752E5550DEc4f61E08742044197b6A',
+// Chain Configurations
+const CHAINS = {
+    // Polygon Amoy (Testnet)
+    80002: {
+        name: 'Polygon Amoy',
+        rpcUrl: 'https://rpc-amoy.polygon.technology',
+        explorerUrl: 'https://amoy.polygonscan.com',
+        contracts: {
+            questPool: process.env.QUEST_POOL_ADDRESS || '0xa1Ec92002c51eD8E117dD4E015b74DcCD70D796F',
+            discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS || '0x30412D42E76d358Ad364411C8C22d050e2DC7af7',
+            reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS || '0x9421c754C2cA9752513E500827373d3957ca9259',
+            artifactNFT: process.env.ARTIFACT_NFT_ADDRESS || '0x585Eba2C08752E5550DEc4f61E08742044197b6A',
+        }
+    },
+    // Base Sepolia (Testnet)
+    84532: {
+        name: 'Base Sepolia',
+        rpcUrl: 'https://sepolia.base.org',
+        explorerUrl: 'https://sepolia.basescan.org',
+        contracts: {
+            questPool: process.env.QUEST_POOL_ADDRESS_BASE || '',
+            discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS_BASE || '',
+            reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS_BASE || '',
+            artifactNFT: process.env.ARTIFACT_NFT_ADDRESS_BASE || '',
+        }
+    },
+    // Base Mainnet
+    8453: {
+        name: 'Base Mainnet',
+        rpcUrl: 'https://mainnet.base.org',
+        explorerUrl: 'https://basescan.org',
+        contracts: {
+            questPool: process.env.QUEST_POOL_ADDRESS_BASE_MAIN || '',
+            discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS_BASE_MAIN || '',
+            reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS_BASE_MAIN || '',
+            artifactNFT: process.env.ARTIFACT_NFT_ADDRESS_BASE_MAIN || '',
+        }
+    }
 };
 
-// Polygon Amoy RPC
-const RPC_URL = process.env.RPC_URL || 'https://rpc-amoy.polygon.technology';
+// Current Chain Configuration
+const CHAIN_ID = Number(process.env.CHAIN_ID) || 80002; // Default to Amoy
+const CURRENT_CHAIN = CHAINS[CHAIN_ID as keyof typeof CHAINS] || CHAINS[80002];
 
-// PolygonScan URLs for block explorer links
-const EXPLORER_URLS = {
-    amoy: 'https://amoy.polygonscan.com',
-    polygon: 'https://polygonscan.com'
+// Export active configuration for use
+export const ACTIVE_CHAIN_CONFIG = {
+    chainId: CHAIN_ID,
+    ...CURRENT_CHAIN
 };
 
 export class ContractService {
@@ -70,29 +104,33 @@ export class ContractService {
     public artifactNFT: ethers.Contract;
 
     constructor() {
-        this.provider = new ethers.JsonRpcProvider(RPC_URL);
+        this.provider = new ethers.JsonRpcProvider(ACTIVE_CHAIN_CONFIG.rpcUrl);
+        console.log(`[ContractService] Connected to ${ACTIVE_CHAIN_CONFIG.name} (${ACTIVE_CHAIN_CONFIG.chainId})`);
 
         // Initialize contract instances (read-only by default)
+        // Note: Base addresses might be empty if not deployed, so we handle that gracefully
+        const contracts = ACTIVE_CHAIN_CONFIG.contracts;
+
         this.questPool = new ethers.Contract(
-            CONTRACT_ADDRESSES.questPool,
+            contracts.questPool || ethers.ZeroAddress,
             QUEST_POOL_ABI,
             this.provider
         );
 
         this.discoveryRegistry = new ethers.Contract(
-            CONTRACT_ADDRESSES.discoveryRegistry,
+            contracts.discoveryRegistry || ethers.ZeroAddress,
             DISCOVERY_REGISTRY_ABI,
             this.provider
         );
 
         this.reputationRegistry = new ethers.Contract(
-            CONTRACT_ADDRESSES.reputationRegistry,
+            contracts.reputationRegistry || ethers.ZeroAddress,
             REPUTATION_REGISTRY_ABI,
             this.provider
         );
 
         this.artifactNFT = new ethers.Contract(
-            CONTRACT_ADDRESSES.artifactNFT,
+            contracts.artifactNFT || ethers.ZeroAddress,
             ARTIFACT_NFT_ABI,
             this.provider
         );
@@ -102,10 +140,10 @@ export class ContractService {
         if (privateKey) {
             this.signer = new ethers.Wallet(privateKey, this.provider);
 
-            // Connect contracts with signer for write operations
-            this.questPool = this.questPool.connect(this.signer) as any;
-            this.reputationRegistry = this.reputationRegistry.connect(this.signer) as any;
-            this.artifactNFT = this.artifactNFT.connect(this.signer) as any;
+            // Connect contracts with signer for write operations (if addresses exist)
+            if (contracts.questPool) this.questPool = this.questPool.connect(this.signer) as any;
+            if (contracts.reputationRegistry) this.reputationRegistry = this.reputationRegistry.connect(this.signer) as any;
+            if (contracts.artifactNFT) this.artifactNFT = this.artifactNFT.connect(this.signer) as any;
 
             console.log('[ContractService] Initialized with signer:', this.signer.address);
         } else {
@@ -306,29 +344,25 @@ export class ContractService {
     // --- Block Explorer URLs ---
 
     /**
-     * Get PolygonScan URL for transaction
+     * Get Explorer URL for transaction
      */
     getTxExplorerUrl(txHash: string): string {
-        const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID) || 80002;
-        const baseUrl = chainId === 137 ? EXPLORER_URLS.polygon : EXPLORER_URLS.amoy;
-        return `${baseUrl}/tx/${txHash}`;
+        return `${ACTIVE_CHAIN_CONFIG.explorerUrl}/tx/${txHash}`;
     }
 
     /**
-     * Get PolygonScan URL for address
+     * Get Explorer URL for address
      */
     getAddressExplorerUrl(address: string): string {
-        const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID) || 80002;
-        const baseUrl = chainId === 137 ? EXPLORER_URLS.polygon : EXPLORER_URLS.amoy;
-        return `${baseUrl}/address/${address}`;
+        return `${ACTIVE_CHAIN_CONFIG.explorerUrl}/address/${address}`;
     }
 
     /**
-     * Get PolygonScan URL for NFT
+     * Get Explorer URL for NFT
      */
     getNftExplorerUrl(contractAddress: string, tokenId: number): string {
-        const chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID) || 80002;
-        const baseUrl = chainId === 137 ? EXPLORER_URLS.polygon : EXPLORER_URLS.amoy;
+        const baseUrl = ACTIVE_CHAIN_CONFIG.explorerUrl;
+        // Handle differences in explorer URL structures if needed, but standard Etherscan is similar
         return `${baseUrl}/token/${contractAddress}?a=${tokenId}`;
     }
 
@@ -359,15 +393,16 @@ export class ContractService {
      * Get all explorer URLs for a quest
      */
     getQuestExplorerLinks(paymentTxHash?: string): {
-        polygonscan: { paymentTx: string | null; questPool: string; discoveryRegistry: string };
+        blockExplorer: { paymentTx: string | null; questPool: string; discoveryRegistry: string };
         x402scan: string;
         thirdwebNexus: string;
     } {
+        const contracts = ACTIVE_CHAIN_CONFIG.contracts;
         return {
-            polygonscan: {
+            blockExplorer: {
                 paymentTx: paymentTxHash ? this.getTxExplorerUrl(paymentTxHash) : null,
-                questPool: this.getAddressExplorerUrl(CONTRACT_ADDRESSES.questPool),
-                discoveryRegistry: this.getAddressExplorerUrl(CONTRACT_ADDRESSES.discoveryRegistry),
+                questPool: this.getAddressExplorerUrl(contracts.questPool),
+                discoveryRegistry: this.getAddressExplorerUrl(contracts.discoveryRegistry),
             },
             x402scan: this.getX402ScanUrl(),
             thirdwebNexus: this.getThirdwebNexusUrl(),
