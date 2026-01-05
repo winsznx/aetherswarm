@@ -581,6 +581,7 @@ questWorker.on('failed', (job, err) => {
 console.log('[Coordinator] Quest worker started, listening for jobs...');
 
 // Start the combined HTTP + WebSocket server
+const port = parseInt(process.env.PORT || process.env.WS_PORT || '3001');
 server.listen(port, () => {
     console.log(`[Coordinator] Server running on port ${port}`);
     console.log(`[Coordinator] WebSocket endpoint: ws://localhost:${port}`);

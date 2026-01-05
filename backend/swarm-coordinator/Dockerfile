@@ -15,7 +15,7 @@ COPY . .
 RUN npm run build
 
 # Expose port (Documentation only, Railway sets PORT env var)
-EXPOSE 8081
+EXPOSE 3001
 
 # Start
 CMD ["node", "dist/index.js"]
