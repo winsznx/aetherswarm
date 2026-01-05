@@ -10,7 +10,9 @@ use std::env;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 mod eigencloud_sdk;
+mod onchain;
 use eigencloud_sdk::EigenCompute;
+use onchain::OnChainAttestor;
 
 /// TEE Attestation result from EigenCloud
 #[derive(Debug, Serialize, Deserialize)]
@@ -65,6 +67,8 @@ pub struct VerificationResult {
     pub verified_chunks: Vec<String>,
     #[serde(rename = "failedChunks")]
     pub failed_chunks: Vec<String>,
+    #[serde(rename = "attestationTxHash", skip_serializing_if = "Option::is_none")]
+    pub attestation_tx_hash: Option<String>,
 }
 
 /// Verifier Agent implementation
@@ -72,6 +76,7 @@ pub struct VerifierAgent {
     agent_id: String,
     coordinator_url: String,
     eigen_compute: EigenCompute,
+    onchain_attestor: Option<OnChainAttestor>,
 }
 
 impl VerifierAgent {
@@ -82,10 +87,28 @@ impl VerifierAgent {
         let agent_id = env::var("AGENT_ID")
             .unwrap_or_else(|_| "verifier-001".to_string());
 
+        // Initialize on-chain attestor if configured
+        let onchain_attestor = if let (Ok(rpc_url), Ok(private_key), Ok(contract_addr)) = (
+            env::var("RPC_URL"),
+            env::var("VERIFIER_PRIVATE_KEY"),
+            env::var("REPUTATION_REGISTRY_ADDRESS"),
+        ) {
+            let chain_id = env::var("CHAIN_ID")
+                .unwrap_or_else(|_| "80002".to_string())
+                .parse()
+                .unwrap_or(80002);
+            
+            OnChainAttestor::new(&rpc_url, &private_key, &contract_addr, chain_id).ok()
+        } else {
+            println!("[Verifier] On-chain attestation disabled (missing env vars)");
+            None
+        };
+
         Self {
             agent_id,
             coordinator_url,
             eigen_compute: EigenCompute::new(),
+            onchain_attestor,
         }
     }
 
@@ -112,8 +135,9 @@ impl VerifierAgent {
             }
         }
 
-        // Compute aggregate data hash
+        // Compute aggregate data hash - include quest_id for uniqueness
         let mut hasher = blake3::Hasher::new();
+        hasher.update(task.quest_id.as_bytes()); // Make unique per quest
         for hash in &verified_chunks {
             hasher.update(hash.as_bytes());
         }
@@ -134,24 +158,46 @@ impl VerifierAgent {
 
         let status = if confidence >= 95 { "verified" } else { "partial" };
 
+        let tee_attestation = TeeAttestation {
+            quote: attestation.quote.clone(),
+            data_hash: aggregate_hash.clone(),
+            timestamp: std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_secs(),
+            validator_pubkey: attestation.validator_pubkey,
+            signature: attestation.signature,
+            confidence_score: confidence,
+        };
+
+        // Post attestation on-chain if configured
+        let mut onchain_tx_hash: Option<String> = None;
+        if let Some(ref attestor) = self.onchain_attestor {
+            match attestor.post_attestation(
+                &task.quest_id,
+                &aggregate_hash,
+                &attestation.quote,
+                confidence,
+            ).await {
+                Ok(tx_hash) => {
+                    println!("[Verifier] On-chain attestation posted: {}", tx_hash);
+                    onchain_tx_hash = Some(tx_hash);
+                }
+                Err(e) => {
+                    eprintln!("[Verifier] Failed to post on-chain attestation: {}", e);
+                }
+            }
+        }
+
         Ok(VerificationResult {
             result_type: "task_result".to_string(),
             quest_id: task.quest_id.clone(),
             agent_id: self.agent_id.clone(),
             status: status.to_string(),
-            attestation: TeeAttestation {
-                quote: attestation.quote,
-                data_hash: aggregate_hash,
-                timestamp: std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-                validator_pubkey: attestation.validator_pubkey,
-                signature: attestation.signature,
-                confidence_score: confidence,
-            },
+            attestation: tee_attestation,
             verified_chunks,
             failed_chunks,
+            attestation_tx_hash: onchain_tx_hash,
         })
     }
 
