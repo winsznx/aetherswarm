@@ -33,15 +33,14 @@ set_vars() {
     
     echo -e "${BLUE}📦 Configuring ${service_name}...${NC}"
     
-    # Build the command
-    local cmd="railway variables set"
+    # Build the command with --set flags
+    local cmd="railway variables -s \"$service_name\""
     for var in "${vars[@]}"; do
         # Check if variable is set
         if [ -n "${!var}" ]; then
-            cmd="$cmd $var=\"${!var}\""
+            cmd="$cmd --set \"$var=${!var}\""
         fi
     done
-    cmd="$cmd -s \"$service_name\""
     
     # Execute
     eval $cmd

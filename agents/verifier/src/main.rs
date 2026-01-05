@@ -251,35 +251,34 @@ impl VerifierAgent {
 
     /// Main agent loop with reconnection
     pub async fn run(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let max_retries = 10;
         let mut retry_count = 0;
 
-        while retry_count < max_retries {
-            match self.run_once(retry_count + 1, max_retries).await {
+        loop {
+            match self.run_once(retry_count + 1).await {
                 Ok(_) => {
                     println!("[Verifier] Connection closed, will retry in 5 seconds...");
                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                    retry_count += 1;
+                    // Dont increment retry count on clean close? Or do? 
+                    // Usually clean close means successful run, so reset?
+                    // But here run_once returns Ok only if connection closed.
+                    // Lets reset retry_count if it ran for > 1 minute? 
+                    // Simpler: Just reset it. If it closed, it was connected.
+                    retry_count = 0;
                 }
                 Err(e) => {
                     eprintln!("[Verifier] Connection error: {}", e);
                     retry_count += 1;
-                    if retry_count < max_retries {
-                        let wait_time = std::cmp::min(5 * retry_count, 30);
-                        println!("[Verifier] Retrying in {} seconds...", wait_time);
-                        tokio::time::sleep(tokio::time::Duration::from_secs(wait_time as u64)).await;
-                    }
+                    let wait_time = std::cmp::min(5 * retry_count, 60);
+                    println!("[Verifier] Retrying in {} seconds...", wait_time);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(wait_time as u64)).await;
                 }
             }
         }
-
-        println!("[Verifier] Max retries ({}) reached. Exiting.", max_retries);
-        Ok(())
     }
 
     /// Single connection attempt
-    async fn run_once(&self, attempt: i32, max_attempts: i32) -> Result<(), Box<dyn std::error::Error>> {
-        println!("[Verifier] Connecting to coordinator (attempt {}/{})...", attempt, max_attempts);
+    async fn run_once(&self, attempt: i32) -> Result<(), Box<dyn std::error::Error>> {
+        println!("[Verifier] Connecting to coordinator (attempt {})...", attempt);
         println!("[Verifier] URL: {}", self.coordinator_url);
 
         let (ws_stream, _) = connect_async(&self.coordinator_url).await?;

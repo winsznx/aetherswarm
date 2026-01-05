@@ -433,14 +433,14 @@ class SynthesizerAgent:
     async def run(self):
         """Main agent loop with reconnection logic"""
         retry_count = 0
-        max_retries = 10
         
-        while retry_count < max_retries:
+        while True:
             try:
-                print(f"[Synthesizer] Connecting to coordinator (attempt {retry_count + 1}/{max_retries})...")
+                print(f"[Synthesizer] Connecting to coordinator (attempt {retry_count + 1})...")
                 await self.connect()
                 
                 print(f"[Synthesizer] Connected successfully! Listening for tasks...")
+                retry_count = 0  # Reset retry count on successful connection
                 
                 # Start heartbeat task
                 heartbeat_task = asyncio.create_task(self.heartbeat())
@@ -462,8 +462,6 @@ class SynthesizerAgent:
                             traceback.print_exc()
                 except Exception as e:
                     print(f"[Synthesizer] WebSocket loop error: {e}")
-                    import traceback
-                    traceback.print_exc()
                 finally:
                     heartbeat_task.cancel()
                     try:
@@ -474,19 +472,15 @@ class SynthesizerAgent:
                 # If we get here, connection was closed
                 print(f"[Synthesizer] Connection closed, will retry in 5 seconds...")
                 await asyncio.sleep(5)
-                retry_count += 1
                 
             except Exception as e:
                 print(f"[Synthesizer] Connection error: {e}")
                 import traceback
                 traceback.print_exc()
                 retry_count += 1
-                if retry_count < max_retries:
-                    wait_time = min(5 * retry_count, 30)  # Exponential backoff, max 30s
-                    print(f"[Synthesizer] Retrying in {wait_time} seconds...")
-                    await asyncio.sleep(wait_time)
-        
-        print(f"[Synthesizer] Max retries ({max_retries}) reached. Exiting.")
+                wait_time = min(5 * retry_count, 60)  # Exponential backoff, max 60s
+                print(f"[Synthesizer] Retrying in {wait_time} seconds...")
+                await asyncio.sleep(wait_time)
 
 
 async def main():
