@@ -226,6 +226,21 @@ export default function Home() {
   // Platform treasury address (receives USDC)
   const TREASURY_ADDRESS = '0xFc2b2e43342a65F0911D4A602Cef650fa84245bA';
 
+  // Monitor payment state for debugging
+  useEffect(() => {
+    if (paymentStep !== 'idle') {
+      console.log('[Quest] Payment state:', {
+        step: paymentStep,
+        isPending,
+        isConfirming,
+        isConfirmed,
+        txHash,
+        hasError: !!txError,
+        errorMessage: txError?.message,
+      });
+    }
+  }, [paymentStep, isPending, isConfirming, isConfirmed, txHash, txError]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll();
   const heroScale = useTransform(scrollYProgress, [0, 0.1], [1, 1.5]);
@@ -286,11 +301,22 @@ export default function Home() {
       return;
     }
 
+
     // Prevent double-click while pending
     if (isPending) {
       console.log('[Quest] Transaction already pending...');
       return;
     }
+
+    // Pre-flight checks
+    console.log('[Quest] Pre-flight checks:', {
+      isConnected,
+      address,
+      chainId: currentChainId,
+      usdcAddress,
+      isPending,
+      hasError: !!txError,
+    });
 
     setIsCreating(true);
     setPaymentStep('paying');
@@ -315,11 +341,31 @@ export default function Home() {
         args: [TREASURY_ADDRESS as `0x${string}`, amount],
       });
 
-      console.log('[Quest] Transaction submitted:', hash);
 
-    } catch (error) {
-      console.error('[Quest] Payment initiation failed:', error);
-      alert('Failed to initiate payment. Check console for details.');
+      console.log('[Quest] ✅ Transaction submitted successfully:', hash);
+
+    } catch (error: any) {
+      console.error('[Quest] ❌ Transaction failed:', {
+        error,
+        message: error?.message,
+        code: error?.code,
+        data: error?.data,
+        name: error?.name,
+      });
+
+      // Handle specific error codes
+      if (error?.code === 4001) {
+        alert('Transaction rejected by user');
+      } else if (error?.code === -32002) {
+        alert('Please check your wallet - there may be a pending request');
+      } else if (error?.code === -32603) {
+        alert('Internal wallet error. Please try reconnecting your wallet.');
+      } else if (error?.message?.includes('insufficient funds')) {
+        alert('Insufficient USDC balance');
+      } else {
+        alert(`Transaction failed: ${error?.message || 'Unknown error'}`);
+      }
+
       setPaymentStep('idle');
       setIsCreating(false);
     }
