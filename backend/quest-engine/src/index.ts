@@ -16,8 +16,16 @@ import * as dotenv from 'dotenv';
 import crypto from 'crypto';
 import { ethers } from 'ethers';
 import { getContractService } from './contractService';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
-dotenv.config({ path: '../../.env' });
+// Load .env only if it exists (for local development)
+const envPath = join(__dirname, '../../.env');
+if (existsSync(envPath)) {
+    dotenv.config({ path: envPath });
+} else {
+    console.log('[Quest Engine] No .env file found, using environment variables from Railway');
+}
 
 const app = express();
 app.use(cors({
