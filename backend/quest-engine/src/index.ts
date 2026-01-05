@@ -60,6 +60,7 @@ app.use(express.json());
 
 // --- Redis & BullMQ Setup ---
 
+console.log(`[Quest Engine] Connecting to Redis at: ${process.env.REDIS_URL ? process.env.REDIS_URL.replace(/:[^:@]*@/, ':****@') : 'localhost'}`);
 const redisConnection = new IORedis(process.env.REDIS_URL || 'redis://localhost:6379', {
     maxRetriesPerRequest: null,
     family: 4 // Force IPv4
