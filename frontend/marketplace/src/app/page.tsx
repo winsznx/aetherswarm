@@ -1247,15 +1247,9 @@ export default function Home() {
               © 2026 AetherSwarm
             </span>
             <div style={{ display: 'flex', gap: '16px' }}>
-              {['GitHub', 'Discord', 'Twitter'].map((link) => (
-                <a key={link} href="#" style={{
-                  fontSize: '11px',
-                  color: 'var(--mid-grey)',
-                  textDecoration: 'none',
-                }}>
-                  {link}
-                </a>
-              ))}
+              <a href="https://github.com/winsznx/aetherswarm" target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--mid-grey)', textDecoration: 'none' }}>GitHub</a>
+              <a href="#" style={{ fontSize: '11px', color: 'var(--mid-grey)', textDecoration: 'none' }}>Discord (winsznx)</a>
+              <a href="https://twitter.com/winsznx" target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--mid-grey)', textDecoration: 'none' }}>Twitter</a>
             </div>
           </div>
         </div>
