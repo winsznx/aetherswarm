@@ -118,7 +118,8 @@ class ScoutAgent:
         }
         
         await self.ws.send(json.dumps(registration))
-        print(f"[Scout] Registered as {self.agent_id} with address {self.x402_client.address}")
+        safe_addr = self.x402_client.address if self.x402_client else "0x00..."
+        print(f"[Scout] Registered as {self.agent_id} with address {safe_addr}")
         
     async def handle_task(self, task: Dict):
         """
@@ -179,6 +180,9 @@ class ScoutAgent:
 
                 try:
                     # Fetch with x402 payment if needed
+                    if not self.x402_client:
+                        raise Exception("Payment client not initialized")
+                        
                     response = await self.x402_client.fetch_with_payment(source_url)
                     data = await response.json() if response.content_type == 'application/json' else await response.text()
                     
@@ -580,24 +584,40 @@ class ScoutAgent:
             async with aiohttp.ClientSession() as session:
                 async with session.options(url, timeout=aiohttp.ClientTimeout(total=5)) as response:
                     # Check for x402 headers
-                    return 'x-payment-required' in [h.lower() for h in response.headers.keys()]
-        except:
+        """Check if an endpoint supports x402 payment"""
+        try:
+            if not self.x402_client:
+                return False
+
+            # Use OPTIONS request or just try fetch and check for 402/401?
+            # Faremeter client handles 402 negotiation automatically.
+            # Simplified check:
+            response = await self.x402_client.fetch_with_payment(url)
+            return 'X-PAYMENT' in response.headers or response.status == 402
+        except Exception:
             return False
     
     async def _fetch_with_x402(self, url: str, query: str) -> Optional[Dict]:
-        """Fetch data from x402-enabled endpoint with payment"""
+        """Fetch data from x402-enabled endpoint"""
         try:
+            if not self.x402_client:
+                raise Exception("Payment client not initialized")
+
+            # Add query param
+            if "?" in url:
+                url += f"&q={query}"
+            else:
+                url += f"?q={query}"
+                
             response = await self.x402_client.fetch_with_payment(url)
-            if response:
-                content_type = response.headers.get('content-type', '')
-                if 'json' in content_type:
-                    return await response.json()
-                else:
-                    text = await response.text()
-                    return {"result": text, "query": query}
+            
+            if response.status == 200:
+                return await response.json()
+                
+            return None
         except Exception as e:
             print(f"[Scout] x402 fetch error: {e}")
-        return None
+            return None
     
     async def _fetch_free(self, url: str) -> Optional[Dict]:
         """Fetch from free endpoint"""
