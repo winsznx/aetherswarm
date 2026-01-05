@@ -581,9 +581,9 @@ questWorker.on('failed', (job, err) => {
 console.log('[Coordinator] Quest worker started, listening for jobs...');
 
 // Start the combined HTTP + WebSocket server
-server.listen(port, '0.0.0.0', () => {
-    console.log(`[Coordinator] Server running on port ${port} (0.0.0.0)`);
-    console.log(`[Coordinator] WebSocket endpoint: ws://0.0.0.0:${port}`);
-    console.log(`[Coordinator] Health endpoint: http://0.0.0.0:${port}/health`);
-    console.log(`[Coordinator] Agents endpoint: http://0.0.0.0:${port}/agents`);
+server.listen(port, () => {
+    console.log(`[Coordinator] Server running on port ${port}`);
+    console.log(`[Coordinator] WebSocket endpoint: ws://localhost:${port}`);
+    console.log(`[Coordinator] Health endpoint: http://localhost:${port}/health`);
+    console.log(`[Coordinator] Agents endpoint: http://localhost:${port}/agents`);
 });
