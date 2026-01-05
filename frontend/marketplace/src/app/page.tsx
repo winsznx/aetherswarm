@@ -1243,7 +1243,7 @@ export default function Home() {
             gap: '12px',
           }}>
             <span style={{ fontSize: '11px', color: 'var(--mid-grey)' }}>
-              © 2024 AetherSwarm
+              © 2026 AetherSwarm
             </span>
             <div style={{ display: 'flex', gap: '16px' }}>
               {['GitHub', 'Discord', 'Twitter'].map((link) => (

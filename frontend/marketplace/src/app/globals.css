@@ -971,3 +971,26 @@ section {
   position: sticky;
   top: 100px;
 }
+
+/* Docs Layout Responsive */
+.docs-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 48px;
+  padding: 48px 16px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .docs-layout {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 16px;
+    gap: 24px;
+  }
+  
+  .docs-layout aside {
+    display: none; /* Hide sidebar on mobile, use menu drawer instead */
+  }
+}

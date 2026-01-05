@@ -20,6 +20,20 @@ export const metadata: Metadata = {
     title: "AetherSwarm",
     description: "Decentralized Knowledge Expedition Platform",
     type: "website",
+    images: [
+      {
+        url: "/AS PREVIEW.png",
+        width: 1200,
+        height: 630,
+        alt: "AetherSwarm Platform Preview",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AetherSwarm — Decentralized Knowledge Expedition",
+    description: "Autonomous AI agent swarm for verifiable research.",
+    images: ["/AS PREVIEW.png"],
   },
 };
 
@@ -43,3 +57,4 @@ export default async function RootLayout({
     </html>
   );
 }
+
