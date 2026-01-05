@@ -56,9 +56,6 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment-Response'],
     credentials: true,
 }));
-allowedHeaders: ['Content-Type', 'Authorization', 'X-Payment-Response'],
-    credentials: true,
-}));
 app.use(express.json());
 
 // DEBUG: Log all requests
