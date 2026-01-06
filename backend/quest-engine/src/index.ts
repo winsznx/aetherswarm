@@ -105,6 +105,14 @@ interface StoredQuest {
         attestationExplorerLink?: string;
         payoutStatus?: string;
         payoutTxHashes?: string[];
+        x402Payments?: Array<{
+            payer: string;
+            amount: string;
+            asset: string;
+            timestamp: number;
+            purpose: string; // e.g., "premium_search", "data_access"
+        }>;
+        totalX402Cost?: string; // Total spent on x402 payments
     };
 }
 
@@ -429,8 +437,20 @@ app.get('/health', (req: Request, res: Response) => {
         integrations: {
             crossmint: !!process.env.CROSSMINT_API_KEY,
             thirdweb: !!process.env.THIRDWEB_WALLET_SECRET,
-            discoveryRegistry: !!process.env.DISCOVERY_REGISTRY_ADDRESS
+            discoveryRegistry: !!process.env.DISCOVERY_REGISTRY_ADDRESS,
+            x402: !!process.env.THIRDWEB_SECRET_KEY
         }
+    });
+});
+
+// x402 Payment Statistics
+app.get('/x402/stats', (req: Request, res: Response) => {
+    const { getPaymentStats } = require('./middleware/payment');
+    const stats = getPaymentStats();
+    res.json({
+        ...stats,
+        enabled: !!process.env.THIRDWEB_SECRET_KEY,
+        facilitator: process.env.THIRDWEB_SECRET_KEY ? 'https://facilitator.corbits.dev' : null
     });
 });
 
