@@ -64,9 +64,6 @@ class TavilyClient:
         if not self.api_key:
             raise ValueError("Tavily API key is required. Set TAVILY_API_KEY environment variable or pass api_key parameter.")
         
-        if not self.api_key.startswith("tvly-"):
-            raise ValueError("Invalid Tavily API key format. Key should start with 'tvly-'")
-        
         self.total_credits_used = 0
         
     async def search(
