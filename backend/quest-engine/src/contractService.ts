@@ -51,10 +51,10 @@ const CHAINS = {
         rpcUrl: 'https://rpc-amoy.polygon.technology',
         explorerUrl: 'https://amoy.polygonscan.com',
         contracts: {
-            questPool: '0x76e8B944B9DAFdb3e27f6aD806DCA3241E2E5FA5',
-            discoveryRegistry: '0x30412D42E76d358Ad364411C8C22d050e2DC7af7',
-            reputationRegistry: '0x5c6C903855fADFE2B0fdeC9f530556d465abAC95',
-            artifactNFT: '0x0014Fde9ad297cA8eC9869B9BC6D089b97049940',
+            questPool: process.env.QUEST_POOL_ADDRESS || '0x76e8B944B9DAFdb3e27f6aD806DCA3241E2E5FA5',
+            discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS || '0x30412D42E76d358Ad364411C8C22d050e2DC7af7',
+            reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS || '0x5c6C903855fADFE2B0fdeC9f530556d465abAC95',
+            artifactNFT: process.env.ARTIFACT_NFT_ADDRESS || '0x0014Fde9ad297cA8eC9869B9BC6D089b97049940',
         }
     },
     // Base Sepolia (Testnet)
@@ -136,8 +136,8 @@ export class ContractService {
             this.provider
         );
 
-        // Use funded AGENT_PRIVATE_KEY (0x8515...) to pay for gas
-        const privateKey = '0xe3c837079a3e560bc29b2d9b9dc3b1187040c1564424a423b713a5d91e08e310';
+        // If we have a private key, create signer for write operations
+        const privateKey = process.env.PLATFORM_PRIVATE_KEY;
         if (privateKey) {
             this.signer = new ethers.Wallet(privateKey, this.provider);
 
