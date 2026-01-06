@@ -16,7 +16,8 @@ interface Quest {
     status: string;
     objectives: string;
     budget: string;
-    walletAddress?: string;
+    walletAddress?: string; // Quest wallet (Crossmint)
+    userWalletAddress?: string; // User's connected wallet
     createdAt?: string;
     completedAt?: string;
     paymentTxHash?: string;
@@ -63,10 +64,13 @@ export default function QuestsPage() {
                 const res = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests`);
                 if (res.ok) {
                     const data = await res.json();
-                    // Filter quests by connected wallet address
+                    // Filter quests by connected wallet address (userWalletAddress, not questWallet)
                     const allQuests = data.quests || [];
                     const userQuests = address
-                        ? allQuests.filter((q: Quest) => q.walletAddress?.toLowerCase() === address.toLowerCase())
+                        ? allQuests.filter((q: Quest) =>
+                            q.userWalletAddress?.toLowerCase() === address.toLowerCase() ||
+                            q.walletAddress?.toLowerCase() === address.toLowerCase() // Fallback for old quests
+                        )
                         : allQuests;
                     setQuests(userQuests);
                 }

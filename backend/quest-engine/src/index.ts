@@ -88,7 +88,8 @@ interface StoredQuest {
     status: 'queued' | 'scouting' | 'verifying' | 'synthesizing' | 'completed' | 'failed';
     objectives: string;
     budget: string;
-    walletAddress?: string;
+    walletAddress?: string; // Quest wallet (Crossmint embedded wallet)
+    userWalletAddress?: string; // User's connected wallet (MetaMask/etc)
     createdAt: string;
     completedAt?: string;
     paymentTxHash?: string | null;
@@ -436,7 +437,7 @@ app.get('/health', (req: Request, res: Response) => {
 // Create Quest
 app.post('/quests', async (req: Request, res: Response) => {
     try {
-        const { objectives, budget, constraints, sources, userId, paymentTxHash } = req.body;
+        const { objectives, budget, constraints, sources, userId, paymentTxHash, walletAddress } = req.body;
 
         // Validate input
         if (!objectives || (Array.isArray(objectives) && objectives.length === 0)) {
@@ -454,7 +455,10 @@ app.post('/quests', async (req: Request, res: Response) => {
 
         // Create embedded wallet for this quest
         const wallet = await createEmbeddedWallet(userId || questId);
-        console.log(`[Quest Engine] Created wallet: ${wallet.address}`);
+        console.log(`[Quest Engine] Created quest wallet: ${wallet.address}`);
+        if (walletAddress) {
+            console.log(`[Quest Engine] User wallet: ${walletAddress}`);
+        }
 
         // Get contract service for explorer URLs
         const contractService = getContractService();
@@ -474,6 +478,7 @@ app.post('/quests', async (req: Request, res: Response) => {
             constraints: constraints || [],
             sources: sources || [],
             walletAddress: wallet.address,
+            userWalletAddress: walletAddress || wallet.address, // Track user's wallet for filtering
             paymentTxHash: paymentTxHash || null,
             createdAt: Date.now()
         });
@@ -489,7 +494,8 @@ app.post('/quests', async (req: Request, res: Response) => {
             status: 'queued',
             objectives: Array.isArray(objectives) ? objectives.join(', ') : objectives,
             budget: String(budget),
-            walletAddress: wallet.address,
+            walletAddress: wallet.address, // Quest wallet (Crossmint)
+            userWalletAddress: walletAddress || wallet.address, // User's connected wallet
             createdAt: new Date().toISOString(),
             paymentTxHash: paymentTxHash || null,
             explorerLinks,
