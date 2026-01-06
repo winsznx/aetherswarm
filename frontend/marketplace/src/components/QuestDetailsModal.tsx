@@ -244,6 +244,72 @@ export function QuestDetailsModal({ quest, isOpen, onClose }: QuestDetailsModalP
                             </div>
                         )}
 
+                        {/* x402 Payment & NFT Section */}
+                        {quest.results && (
+                            <div style={{ marginBottom: '24px', display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+
+                                {/* Knowledge NFT */}
+                                {quest.results.nftTokenId && (
+                                    <div style={{ padding: '16px', background: 'var(--warm-white)', border: '1px solid var(--olive-drab)', borderRadius: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                                            <span style={{ fontSize: '18px' }}>📜</span>
+                                            <h3 style={{ fontSize: '14px', fontWeight: 600, margin: 0, fontFamily: 'var(--font-serif)', color: 'var(--olive-drab)' }}>
+                                                Knowledge Artifact Minted
+                                            </h3>
+                                        </div>
+                                        <p style={{ fontSize: '13px', margin: '0 0 12px 0', opacity: 0.8 }}>
+                                            Research completed and finalized on-chain as a verifiable NFT.
+                                        </p>
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <div style={{ background: 'var(--alabaster)', padding: '6px 12px', borderRadius: '4px', fontSize: '12px', fontFamily: 'monospace' }}>
+                                                Token ID: #{quest.results.nftTokenId}
+                                            </div>
+                                            {quest.results.nftExplorerLink && (
+                                                <a
+                                                    href={quest.results.nftExplorerLink}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    style={{ fontSize: '12px', color: 'var(--burnt-clay)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 600, textDecoration: 'none' }}
+                                                >
+                                                    View NFT ↗
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* x402 Payments */}
+                                {quest.results.payoutTxHashes && quest.results.payoutTxHashes.length > 0 && (
+                                    <div style={{ padding: '16px', background: 'var(--alabaster)', border: '1px solid var(--soft-grey)', borderRadius: '8px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                            <span style={{ fontSize: '18px' }}>💸</span>
+                                            <h3 style={{ fontSize: '14px', fontWeight: 600, margin: 0, fontFamily: 'var(--font-serif)' }}>
+                                                x402 Micropayments
+                                            </h3>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                            {quest.results.payoutTxHashes.map((hash: string, i: number) => (
+                                                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', padding: '8px', background: 'var(--warm-white)', border: '1px solid var(--soft-grey)', borderRadius: '4px' }}>
+                                                    <span style={{ fontFamily: 'monospace' }}>{hash.slice(0, 8)}...{hash.slice(-6)}</span>
+                                                    <a
+                                                        href={`https://amoy.polygonscan.com/tx/${hash}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{ color: 'var(--olive-drab)', textDecoration: 'none', fontSize: '12px', fontWeight: 500 }}
+                                                    >
+                                                        Verified ✓
+                                                    </a>
+                                                </div>
+                                            ))}
+                                            <p style={{ fontSize: '12px', color: 'var(--mid-grey)', margin: '8px 0 0 0', textAlign: 'center' }}>
+                                                Automatic settlement via QuestPool contract
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         {/* Explorer Links */}
                         {quest.explorerLinks && (
                             <div style={{
