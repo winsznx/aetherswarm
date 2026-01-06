@@ -655,7 +655,8 @@ const resultWorker = new Worker('quest-results', async (job) => {
 
         try {
             console.log(`[Quest Engine] Checking artifact for minting...`);
-            if (artifact && artifact.root) {
+            const hasRoot = artifact && (artifact.root || artifact.merkleRoot);
+            if (hasRoot) {
                 console.log(`[Quest Engine] >> Minting Artifact NFT...`);
                 // Use user's connected wallet as recipient if available, otherwise quest wallet
                 const recipient = quest.userWalletAddress || quest.walletAddress || '0x0000000000000000000000000000000000000000';
@@ -663,10 +664,11 @@ const resultWorker = new Worker('quest-results', async (job) => {
                 const contractService = getContractService();
 
                 // Format merkle root (ensure it's 0x prefixed)
-                const merkleRoot = artifact.root.startsWith('0x') ? artifact.root : `0x${artifact.root}`;
+                const rawRoot = artifact.root || artifact.merkleRoot;
+                const merkleRoot = rawRoot.startsWith('0x') ? rawRoot : `0x${rawRoot}`;
 
                 // Default metadata URI (in prod this would be IPFS hash)
-                const metadataURI = artifact.ipfsHash ? `ipfs://${artifact.ipfsHash}` : `ipfs://QmCheckPinata${questId}`;
+                const metadataURI = artifact.metadataURI || (artifact.ipfsHash ? `ipfs://${artifact.ipfsHash}` : `ipfs://QmCheckPinata${questId}`);
 
                 // Get contributors keys
                 const contributorAddresses = Object.values(quest.assignedAgents || {}).filter(addr => addr && addr.startsWith('0x'));
