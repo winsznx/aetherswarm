@@ -54,6 +54,15 @@ export default function DocsPage() {
             ]
         },
         {
+            title: 'Integrations',
+            id: 'integrations',
+            icon: <Globe size={16} />,
+            items: [
+                { title: 'All Services', id: 'integrations-overview' },
+                { title: 'x402 Status', id: 'x402-status' },
+            ]
+        },
+        {
             title: 'Development',
             id: 'development',
             icon: <Code size={16} />,
@@ -517,6 +526,173 @@ export default function DocsPage() {
                                 TAVILY_API_KEY=tvly-...
                             </code>
                         </div>
+                    </div>
+                </div>
+            )
+        },
+        'integrations-overview': {
+            title: 'Platform Integrations',
+            content: (
+                <div>
+                    <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
+                        AetherSwarm leverages cutting-edge Web3 infrastructure for autonomous AI agents.
+                    </p>
+
+                    <div style={{ display: 'grid', gap: '24px' }}>
+                        {[
+                            {
+                                name: 'x402 Protocol',
+                                status: 'ACTIVE',
+                                desc: 'HTTP-native micropayments for agent-to-API data access',
+                                features: ['EIP-712 signatures', 'Replay attack prevention', 'Payment verification'],
+                                color: 'var(--olive-drab)'
+                            },
+                            {
+                                name: 'Crossmint',
+                                status: 'ACTIVE',
+                                desc: 'Embedded wallets for gasless quest creation',
+                                features: ['ERC-4337 smart wallets', 'Gasless transactions', 'Fiat on-ramps'],
+                                color: 'var(--olive-drab)'
+                            },
+                            {
+                                name: 'Thirdweb Nexus',
+                                status: 'ACTIVE',
+                                desc: 'Account abstraction and gas sponsorship',
+                                features: ['Multi-chain support', 'Sponsored transactions', 'Contract deployment'],
+                                color: 'var(--olive-drab)'
+                            },
+                            {
+                                name: 'Tavily Search',
+                                status: 'ACTIVE',
+                                desc: 'Premium AI-optimized search API',
+                                features: ['High-quality results', 'LLM-generated answers', 'Domain filtering'],
+                                color: 'var(--olive-drab)'
+                            },
+                            {
+                                name: 'Pinata / IPFS',
+                                status: 'ACTIVE',
+                                desc: 'Decentralized storage for knowledge artifacts',
+                                features: ['Permanent storage', 'Content addressing', 'Gateway access'],
+                                color: 'var(--olive-drab)'
+                            },
+                            {
+                                name: 'Polygon Amoy',
+                                status: 'ACTIVE',
+                                desc: 'Layer 2 blockchain for on-chain attestations',
+                                features: ['Low fees ($0.0001/tx)', 'Fast finality', 'EVM compatible'],
+                                color: 'var(--olive-drab)'
+                            },
+                            {
+                                name: 'Reown AppKit',
+                                status: 'ACTIVE',
+                                desc: 'Multi-wallet connection',
+                                features: ['Multiple wallets', 'Chain switching', 'Social login'],
+                                color: 'var(--olive-drab)'
+                            },
+                            {
+                                name: 'EigenCloud TEE',
+                                status: 'PLANNED',
+                                desc: 'Trusted Execution Environments (dev mode)',
+                                features: ['TEE attestations', 'Deterministic inference', 'Data availability'],
+                                color: 'var(--burnt-clay)'
+                            }
+                        ].map((integration, i) => (
+                            <div key={i} style={{
+                                padding: '20px',
+                                background: 'var(--warm-white)',
+                                border: '1px solid var(--soft-grey)',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                                    <h4 style={{ margin: 0 }}>{integration.name}</h4>
+                                    <span style={{
+                                        padding: '4px 12px',
+                                        background: integration.color,
+                                        color: 'var(--warm-white)',
+                                        fontSize: '9px',
+                                        fontWeight: 500,
+                                        letterSpacing: '0.1em',
+                                        textTransform: 'uppercase',
+                                    }}>
+                                        {integration.status}
+                                    </span>
+                                </div>
+                                <p style={{ fontSize: '14px', color: 'var(--mid-grey)', marginBottom: '12px' }}>
+                                    {integration.desc}
+                                </p>
+                                <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '13px' }}>
+                                    {integration.features.map((feature, j) => (
+                                        <li key={j} style={{ marginBottom: '4px' }}>{feature}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )
+        },
+        'x402-status': {
+            title: 'x402 Implementation Status',
+            content: (
+                <div>
+                    <p style={{ marginBottom: '24px', lineHeight: 1.8, color: 'var(--mid-grey)' }}>
+                        Real-time status of x402 payment protocol implementation.
+                    </p>
+
+                    <div style={{ background: 'var(--limestone)', padding: '24px', marginBottom: '24px', border: '2px solid var(--olive-drab)' }}>
+                        <h3 style={{ marginBottom: '16px', color: 'var(--olive-drab)' }}>✅ Fully Implemented</h3>
+                        <ul style={{ listStyle: 'none', padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {[
+                                'EIP-712 payment signature generation',
+                                'HTTP 402 response handling',
+                                'Payment proof verification',
+                                'Replay attack prevention (nonce tracking)',
+                                'Amount verification',
+                                'Payment tracking and logging'
+                            ].map((item, i) => (
+                                <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: '14px' }}>
+                                    <span style={{ color: 'var(--olive-drab)' }}>✓</span>
+                                    <span>{item}</span>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ marginBottom: '16px' }}>Payment Flow</h3>
+                        <div style={{ background: 'var(--graphite)', color: 'var(--warm-white)', padding: '20px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '13px', lineHeight: 1.8 }}>
+                            1. Agent requests data → Server returns 402<br />
+                            2. Agent signs EIP-712 payment authorization<br />
+                            3. Agent retries with X-PAYMENT header<br />
+                            4. Server verifies signature → Returns data<br />
+                            5. Payment logged and tracked
+                        </div>
+                    </div>
+
+                    <div style={{ marginBottom: '24px' }}>
+                        <h3 style={{ marginBottom: '16px' }}>Live Statistics</h3>
+                        <p style={{ fontSize: '14px', color: 'var(--mid-grey)', marginBottom: '12px' }}>
+                            View real-time x402 payment statistics:
+                        </p>
+                        <code style={{
+                            display: 'block',
+                            padding: '12px',
+                            background: 'var(--limestone)',
+                            fontSize: '13px',
+                            fontFamily: 'monospace',
+                            border: '1px solid var(--soft-grey)'
+                        }}>
+                            GET /x402/stats
+                        </code>
+                    </div>
+
+                    <div style={{ background: 'var(--warm-white)', padding: '20px', border: '1px solid var(--soft-grey)' }}>
+                        <h4 style={{ marginBottom: '12px' }}>Security Features</h4>
+                        <ul style={{ fontSize: '14px', color: 'var(--mid-grey)', paddingLeft: '20px' }}>
+                            <li>Cryptographic signature verification using ethers.js</li>
+                            <li>Nonce-based replay attack prevention</li>
+                            <li>Amount validation (minimum 0.01 USDC)</li>
+                            <li>Payer address verification</li>
+                        </ul>
                     </div>
                 </div>
             )
