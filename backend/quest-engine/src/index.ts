@@ -649,6 +649,52 @@ const resultWorker = new Worker('quest-results', async (job) => {
     if (quest) {
         console.log(`Found quest in Redis, updating status...`);
 
+        // --- ARTIFACT MINTING (PRIORITY) ---
+        let nftTokenId: string | undefined;
+        let nftExplorerLink: string | undefined;
+
+        try {
+            console.log(`[Quest Engine] Checking artifact for minting...`);
+            if (artifact && artifact.root) {
+                console.log(`[Quest Engine] >> Minting Artifact NFT...`);
+                // Use user's connected wallet as recipient if available, otherwise quest wallet
+                const recipient = quest.userWalletAddress || quest.walletAddress || '0x0000000000000000000000000000000000000000';
+
+                const contractService = getContractService();
+
+                // Format merkle root (ensure it's 0x prefixed)
+                const merkleRoot = artifact.root.startsWith('0x') ? artifact.root : `0x${artifact.root}`;
+
+                // Default metadata URI (in prod this would be IPFS hash)
+                const metadataURI = artifact.ipfsHash ? `ipfs://${artifact.ipfsHash}` : `ipfs://QmCheckPinata${questId}`;
+
+                // Get contributors keys
+                const contributorAddresses = Object.values(quest.assignedAgents || {}).filter(addr => addr && addr.startsWith('0x'));
+
+                const mintResult = await contractService.mintArtifact(
+                    recipient,
+                    metadataURI,
+                    merkleRoot,
+                    contributorAddresses as string[] // Type assertion for now
+                );
+
+                nftTokenId = mintResult.tokenId.toString();
+
+                if (contractService.artifactNFT && contractService.artifactNFT.target) {
+                    nftExplorerLink = contractService.getNftExplorerUrl(
+                        contractService.artifactNFT.target as string,
+                        mintResult.tokenId
+                    );
+                }
+
+                console.log(`[Quest Engine] ✓ NFT Minted: Token #${nftTokenId} to ${recipient}`);
+            } else {
+                console.warn(`[Quest Engine] Skipping mint: No artifact root found in job data.`);
+            }
+        } catch (error) {
+            console.error(`[Quest Engine] NFT Minting failed:`, error);
+        }
+
         // --- REAL X402 PAYOUTS ---
         let payoutStatus = 'pending';
         let payoutTxHashes: string[] = [];
@@ -718,45 +764,7 @@ const resultWorker = new Worker('quest-results', async (job) => {
             payoutStatus = 'failed';
         }
 
-        // --- ARTIFACT MINTING ---
-        let nftTokenId: string | undefined;
-        let nftExplorerLink: string | undefined;
-
-        try {
-            if (artifact && artifact.root) {
-                console.log(`[Quest Engine] Minting Artifact NFT...`);
-                const contractService = getContractService();
-
-                // Use user's connected wallet as recipient if available, otherwise quest wallet
-                const recipient = quest.userWalletAddress || quest.walletAddress || '0x0000000000000000000000000000000000000000';
-
-                // Format merkle root (ensure it's 0x prefixed)
-                const merkleRoot = artifact.root.startsWith('0x') ? artifact.root : `0x${artifact.root}`;
-
-                // Default metadata URI (in prod this would be IPFS hash)
-                const metadataURI = artifact.ipfsHash ? `ipfs://${artifact.ipfsHash}` : `ipfs://QmCheckPinata${questId}`;
-
-                // Get contributors keys
-                const contributorAddresses = Object.values(quest.assignedAgents || {}).filter(addr => addr && addr.startsWith('0x'));
-
-                const mintResult = await contractService.mintArtifact(
-                    recipient,
-                    metadataURI,
-                    merkleRoot,
-                    contributorAddresses as string[] // Type assertion for now
-                );
-
-                nftTokenId = mintResult.tokenId.toString();
-                nftExplorerLink = contractService.getNftExplorerUrl(
-                    contractService.artifactNFT.target as string,
-                    mintResult.tokenId
-                );
-
-                console.log(`[Quest Engine] ✓ NFT Minted: Token #${nftTokenId}`);
-            }
-        } catch (error) {
-            console.error(`[Quest Engine] NFT Minting failed:`, error);
-        }
+        // (Artifact Minting block moved to run before payouts)
 
         quest.status = 'completed';
         quest.completedAt = new Date().toISOString();
