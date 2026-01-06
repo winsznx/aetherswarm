@@ -63,7 +63,12 @@ export default function QuestsPage() {
                 const res = await fetch(`${API_CONFIG.QUEST_ENGINE_URL}/quests`);
                 if (res.ok) {
                     const data = await res.json();
-                    setQuests(data.quests || []);
+                    // Filter quests by connected wallet address
+                    const allQuests = data.quests || [];
+                    const userQuests = address
+                        ? allQuests.filter((q: Quest) => q.walletAddress?.toLowerCase() === address.toLowerCase())
+                        : allQuests;
+                    setQuests(userQuests);
                 }
             } catch (error) {
                 console.error('Failed to fetch quests:', error);
@@ -76,7 +81,7 @@ export default function QuestsPage() {
         // Poll for updates every 5 seconds
         const interval = setInterval(fetchQuests, 5000);
         return () => clearInterval(interval);
-    }, []);
+    }, [address]); // Re-fetch when wallet address changes
 
     const handleCreateQuest = async () => {
         if (!isConnected) {
