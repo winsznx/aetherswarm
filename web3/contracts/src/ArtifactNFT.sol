@@ -40,7 +40,7 @@ contract ArtifactNFT is ERC721URIStorage, Ownable {
         string memory metadataURI,
         bytes32 merkleRoot,
         address[] memory contributors
-    ) external onlyOwner returns (uint256) {
+    ) external returns (uint256) {
         _tokenIdCounter++;
         uint256 tokenId = _tokenIdCounter;
         

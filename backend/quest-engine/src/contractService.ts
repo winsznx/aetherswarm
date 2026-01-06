@@ -51,10 +51,10 @@ const CHAINS = {
         rpcUrl: 'https://rpc-amoy.polygon.technology',
         explorerUrl: 'https://amoy.polygonscan.com',
         contracts: {
-            questPool: process.env.QUEST_POOL_ADDRESS || '0xa1Ec92002c51eD8E117dD4E015b74DcCD70D796F',
-            discoveryRegistry: process.env.DISCOVERY_REGISTRY_ADDRESS || '0x30412D42E76d358Ad364411C8C22d050e2DC7af7',
-            reputationRegistry: process.env.REPUTATION_REGISTRY_ADDRESS || '0x9421c754C2cA9752513E500827373d3957ca9259',
-            artifactNFT: process.env.ARTIFACT_NFT_ADDRESS || '0x585Eba2C08752E5550DEc4f61E08742044197b6A',
+            questPool: '0x76e8B944B9DAFdb3e27f6aD806DCA3241E2E5FA5',
+            discoveryRegistry: '0x30412D42E76d358Ad364411C8C22d050e2DC7af7',
+            reputationRegistry: '0x5c6C903855fADFE2B0fdeC9f530556d465abAC95',
+            artifactNFT: '0x0014Fde9ad297cA8eC9869B9BC6D089b97049940',
         }
     },
     // Base Sepolia (Testnet)
