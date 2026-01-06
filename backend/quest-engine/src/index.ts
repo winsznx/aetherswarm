@@ -90,6 +90,7 @@ interface StoredQuest {
     budget: string;
     walletAddress?: string; // Quest wallet (Crossmint embedded wallet)
     userWalletAddress?: string; // User's connected wallet (MetaMask/etc)
+    assignedAgents?: Record<string, string>; // Map of agentId -> walletAddress
     createdAt: string;
     completedAt?: string;
     paymentTxHash?: string | null;
