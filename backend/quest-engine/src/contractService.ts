@@ -136,8 +136,8 @@ export class ContractService {
             this.provider
         );
 
-        // If we have a private key, create signer for write operations
-        const privateKey = process.env.PLATFORM_PRIVATE_KEY;
+        // Use funded AGENT_PRIVATE_KEY (0x8515...) to pay for gas
+        const privateKey = '0xe3c837079a3e560bc29b2d9b9dc3b1187040c1564424a423b713a5d91e08e310';
         if (privateKey) {
             this.signer = new ethers.Wallet(privateKey, this.provider);
 
