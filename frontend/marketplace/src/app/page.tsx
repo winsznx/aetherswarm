@@ -1312,7 +1312,7 @@ export default function Home() {
             </span>
             <div style={{ display: 'flex', gap: '16px' }}>
               <a href="https://github.com/winsznx/aetherswarm" target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--mid-grey)', textDecoration: 'none' }}>GitHub</a>
-              <a href="#" style={{ fontSize: '11px', color: 'var(--mid-grey)', textDecoration: 'none' }}>Discord (winsznx)</a>
+                <a href="https://discord.gg/winsznx" target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--mid-grey)', textDecoration: 'none' }}>Discord</a>
               <a href="https://twitter.com/winsznx" target="_blank" rel="noopener noreferrer" style={{ fontSize: '11px', color: 'var(--mid-grey)', textDecoration: 'none' }}>Twitter</a>
             </div>
           </div>
